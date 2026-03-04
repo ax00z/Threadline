@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: threadline
+Version: 0.1.0
+Summary: Investigative analysis platform for law enforcement communication datasets
+Requires-Python: >=3.11
+Requires-Dist: fastapi>=0.115
+Requires-Dist: uvicorn[standard]>=0.34
+Requires-Dist: python-multipart>=0.0.18
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-cov>=5.0; extra == "dev"
+Requires-Dist: psutil>=6.0; extra == "dev"
