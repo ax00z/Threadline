@@ -2,7 +2,8 @@
 
 Network analysis and timeline reconstruction for seized communication datasets.
 
-Built for investigators dealing with WhatsApp, Telegram, and SMS exports from forensic extractions. Replaces the spreadsheet workflow — drop a file, get a searchable message log, participant breakdown, and activity timeline immediately.
+Built for investigators dealing with WhatsApp, Telegram, and SMS exports from forensic extractions. Replaces the spreadsheet workflow. 
+Drop a file, get a searchable message log, participant breakdown, and activity timeline immediately.
 
 ---
 
@@ -11,7 +12,7 @@ Built for investigators dealing with WhatsApp, Telegram, and SMS exports from fo
 - Parses WhatsApp `.txt` exports, Telegram `.json` exports, and generic CSV from forensic tools
 - Builds a searchable message table with per-sender color coding
 - Shows participant message counts and a daily activity timeline
-- Streams files at O(1) memory — a 50k-line export uses ~400KB regardless of file size
+- Streams files at O(1) memory. A 50k-line export uses around 400KB regardless of file size
 - Network graph (Phase 2, coming)
 - Air-gapped NLP entity extraction (Phase 3, coming)
 
