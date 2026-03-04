@@ -100,26 +100,6 @@ python scripts/gen_test_data.py -n 10000 -p 8 --format whatsapp -o data/test.txt
 python scripts/gen_test_data.py -n 5000 -p 4 --format telegram -o data/test.json
 ```
 
----
-
-## Project layout
-
-```
-src/threadline/
-    parser.py      streaming multi-format parser
-    models.py      Message dataclass
-    api.py         FastAPI upload endpoint
-    cli.py         command-line interface
-web/
-    src/routes/    SvelteKit pages
-    src/lib/       components, types, utilities
-tests/
-scripts/
-    gen_test_data.py
-```
-
----
-
 ## Roadmap
 
 - [x] Phase 1 — streaming parser, CLI, tests
