@@ -3,6 +3,7 @@ export interface Message {
 	sender: string;
 	body: string;
 	line_number: number;
+	source_format: string;
 	entities: Record<string, unknown>[];
 }
 
@@ -16,6 +17,7 @@ export interface ParseStats {
 	senders: SenderBreakdown;
 	first_message: string;
 	last_message: string;
+	source_format: string;
 }
 
 export interface UploadResponse {

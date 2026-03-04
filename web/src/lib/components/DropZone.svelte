@@ -12,12 +12,18 @@
 	let dragOver = $state(false);
 	let fileInput = $state<HTMLInputElement | undefined>();
 
+	const ACCEPTED = ['.txt', '.json', '.csv'];
+
+	function accepted(name: string) {
+		return ACCEPTED.some((ext) => name.toLowerCase().endsWith(ext));
+	}
+
 	function handleDrop(e: DragEvent) {
 		e.preventDefault();
 		dragOver = false;
 		if (disabled) return;
 		const file = e.dataTransfer?.files[0];
-		if (file && file.name.endsWith('.txt')) {
+		if (file && accepted(file.name)) {
 			onfileselected?.(file);
 		}
 	}
@@ -56,14 +62,14 @@
 	onclick={browse}
 	onkeydown={(e) => e.key === 'Enter' && browse()}
 >
-	<input bind:this={fileInput} type="file" accept=".txt" onchange={handleFileInput} hidden />
+	<input bind:this={fileInput} type="file" accept=".txt,.json,.csv" onchange={handleFileInput} hidden />
 
 	{#if compact}
-		<span class="compact-label">Upload new file</span>
+		<span class="compact-label">↥ Upload new file</span>
 	{:else}
 		<div class="drop-icon">&#8613;</div>
-		<p class="title">Drop WhatsApp export here</p>
-		<p class="subtitle">or click to browse (.txt files)</p>
+		<p class="title">Drop chat export here or click to browse</p>
+		<p class="subtitle">WhatsApp .txt &nbsp;·&nbsp; Telegram .json &nbsp;·&nbsp; CSV .csv</p>
 	{/if}
 </div>
 
