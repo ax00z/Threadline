@@ -9,7 +9,7 @@
 	import MessageTable from '$lib/components/MessageTable.svelte';
 	import SenderStats from '$lib/components/SenderStats.svelte';
 	import Timeline from '$lib/components/Timeline.svelte';
-	import GraphPlaceholder from '$lib/components/GraphPlaceholder.svelte';
+	import NetworkGraph from '$lib/components/NetworkGraph.svelte';
 
 	type View = 'idle' | 'uploading' | 'parsed' | 'error';
 
@@ -89,7 +89,7 @@
 				</div>
 
 				<div class="row-graph">
-					<GraphPlaceholder />
+					<NetworkGraph graph={data.graph} />
 				</div>
 			</div>
 		{/if}

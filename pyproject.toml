@@ -10,6 +10,7 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.34",
     "python-multipart>=0.0.18",
+    "networkx>=3.0",
 ]
 
 [project.optional-dependencies]

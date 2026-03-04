@@ -20,7 +20,27 @@ export interface ParseStats {
 	source_format: string;
 }
 
+export interface GraphNode {
+	id: string;
+	message_count: number;
+	degree_centrality: number;
+	betweenness_centrality: number;
+	closeness_centrality: number;
+}
+
+export interface GraphEdge {
+	source: string;
+	target: string;
+	weight: number;
+}
+
+export interface GraphData {
+	nodes: GraphNode[];
+	edges: GraphEdge[];
+}
+
 export interface UploadResponse {
 	messages: Message[];
 	stats: ParseStats;
+	graph: GraphData;
 }
