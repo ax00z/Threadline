@@ -7,7 +7,7 @@ from threadline.parser import parse_file
 
 def _make_large_chat(n: int) -> str:
     lines = []
-    names = ["Rania", "Kofi", "Yusuf", "Selin", "Omar"]
+    names = ["Marcus", "Kofi", "Victor", "Sven", "Oscar"]
     for i in range(n):
         h = 8 + (i % 12)
         ampm = "AM" if h < 12 else "PM"
