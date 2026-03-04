@@ -7,9 +7,9 @@ import sys
 from datetime import datetime, timedelta
 
 NAMES = [
-    "Rania", "Kofi", "Yusuf", "Selin", "Omar",
-    "Priya", "Marcus", "Fatima", "Tariq", "Nadia",
-    "Darius", "Mei", "Leon", "Ana", "Kenji",
+    "Marcus", "Kofi", "Darius", "Mei", "Leon",
+    "Ana", "Kenji", "Victor", "Sven", "Oscar",
+    "Petra", "Fiona", "Tyler", "Nina", "Rachel",
 ]
 
 MESSAGES = [
