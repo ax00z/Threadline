@@ -18,7 +18,7 @@ _DASH = re.compile(
 )
 
 _SYSTEM_TOKENS = (
-    "Messages and calls are end-to-end encrypted",
+    "messages and calls are end-to-end encrypted",
     "created group",
     "added",
     "removed",
@@ -37,7 +37,7 @@ _SYSTEM_TOKENS = (
 
 def _is_system(body: str) -> bool:
     lo = body.lower()
-    return any(t.lower() in lo for t in _SYSTEM_TOKENS)
+    return any(t in lo for t in _SYSTEM_TOKENS)
 
 
 def _parse_whatsapp_ts(date_str: str, time_str: str) -> str:
