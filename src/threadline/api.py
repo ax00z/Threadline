@@ -21,7 +21,7 @@ app.add_middleware(
 )
 
 _ACCEPTED = {".txt", ".json", ".csv"}
-_REPLY_WINDOW_SECS = 300  # 5 min — messages within this gap are considered a reply chain
+_REPLY_WINDOW_SECS = 300  # 5 min, messages within this gap are considered a reply chain
 
 
 def _build_graph(messages: list[dict]) -> dict:

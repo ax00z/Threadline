@@ -5,6 +5,7 @@
 	import forceAtlas2 from 'graphology-layout-forceatlas2';
 	import { circular } from 'graphology-layout';
 	import type { GraphData, GraphNode } from '$lib/types';
+	import { buildSenderColorMap } from '$lib/colors';
 
 	let { graph }: { graph: GraphData } = $props();
 
@@ -12,21 +13,17 @@
 	let renderer: Sigma | null = null;
 	let hovered = $state<GraphNode | null>(null);
 
-	const PALETTE = [
-		'#60a5fa', '#34d399', '#f59e0b', '#f87171', '#a78bfa',
-		'#fb7185', '#38bdf8', '#4ade80', '#facc15', '#c084fc',
-	];
-
 	onMount(() => {
 		if (!graph.nodes.length) return;
 
 		const g = new Graph({ type: 'undirected', multi: false });
+		const colorMap = buildSenderColorMap(graph.nodes.map((n) => n.id));
 
-		graph.nodes.forEach((node, i) => {
+		graph.nodes.forEach((node) => {
 			g.addNode(node.id, {
 				label: node.id,
 				size: 5 + node.degree_centrality * 20,
-				color: PALETTE[i % PALETTE.length],
+				color: colorMap.get(node.id) || '#555',
 				message_count: node.message_count,
 				degree_centrality: node.degree_centrality,
 				betweenness_centrality: node.betweenness_centrality,

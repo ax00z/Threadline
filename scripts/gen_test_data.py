@@ -84,16 +84,13 @@ def main():
 
     if args.format == "whatsapp":
         out = gen_whatsapp(args.n, args.p)
-        mode = "w"
     elif args.format == "telegram":
         out = json.dumps(gen_telegram(args.n, args.p), indent=2, ensure_ascii=False)
-        mode = "w"
     else:
         out = gen_csv(args.n, args.p)
-        mode = "w"
 
     if args.output:
-        with open(args.output, mode, encoding="utf-8") as f:
+        with open(args.output, "w", encoding="utf-8") as f:
             f.write(out)
         print(f"wrote {args.n} messages to {args.output}", file=sys.stderr)
     else:
