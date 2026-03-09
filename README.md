@@ -104,7 +104,7 @@ python scripts/gen_test_data.py -n 5000 -p 4 --format telegram -o data/test.json
 
 - [x] Phase 1 — streaming parser, CLI, tests
 - [x] Phase 2 (partial) — FastAPI backend, SvelteKit dashboard
-- [ ] Phase 2 — NetworkX graph engine, centrality metrics
+- [x] Phase 2 — NetworkX graph engine, centrality metrics
 - [ ] Phase 3 — air-gapped spaCy NER (phones, locations, names)
 - [ ] Phase 4 — full tactical UI with graph view
 - [ ] Phase 5 — Rust cryptographic chain of custody (SHA-256 Merkle)

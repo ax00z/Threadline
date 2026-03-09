@@ -10,6 +10,7 @@
 	import SenderStats from '$lib/components/SenderStats.svelte';
 	import Timeline from '$lib/components/Timeline.svelte';
 	import NetworkGraph from '$lib/components/NetworkGraph.svelte';
+	import CommunityPanel from '$lib/components/CommunityPanel.svelte';
 
 	type View = 'idle' | 'uploading' | 'parsed' | 'error';
 
@@ -89,7 +90,14 @@
 				</div>
 
 				<div class="row-graph">
-					<NetworkGraph graph={data.graph} />
+					<div class="graph-grid">
+						<div class="graph-main">
+							<NetworkGraph graph={data.graph} />
+						</div>
+						<div class="graph-side">
+							<CommunityPanel communities={data.graph.communities} nodes={data.graph.nodes} />
+						</div>
+					</div>
 				</div>
 			</div>
 		{/if}
@@ -187,6 +195,20 @@
 
 	.row-graph {
 		flex-shrink: 0;
+	}
+
+	.graph-grid {
+		display: grid;
+		grid-template-columns: 1fr 320px;
+		gap: 1rem;
+	}
+
+	.graph-main {
+		min-height: 0;
+	}
+
+	.graph-side {
+		min-height: 0;
 	}
 
 	.error-card {

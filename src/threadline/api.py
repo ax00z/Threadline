@@ -51,11 +51,19 @@ def _build_graph(messages: list[dict]) -> dict:
             G.add_edge(a, b, weight=1)
 
     if len(G.nodes) == 0:
-        return {"nodes": [], "edges": []}
+        return {"nodes": [], "edges": [], "communities": []}
 
     degree_c = nx.degree_centrality(G)
     between_c = nx.betweenness_centrality(G, weight="weight")
     close_c = nx.closeness_centrality(G)
+    pagerank = nx.pagerank(G, weight="weight")
+
+    # Community detection (Louvain)
+    community_sets = nx.community.louvain_communities(G, weight="weight", seed=42)
+    node_community: dict[str, int] = {}
+    for idx, members in enumerate(community_sets):
+        for member in members:
+            node_community[member] = idx
 
     nodes = []
     for node, data in G.nodes(data=True):
@@ -65,6 +73,8 @@ def _build_graph(messages: list[dict]) -> dict:
             "degree_centrality": round(degree_c.get(node, 0), 4),
             "betweenness_centrality": round(between_c.get(node, 0), 4),
             "closeness_centrality": round(close_c.get(node, 0), 4),
+            "pagerank": round(pagerank.get(node, 0), 4),
+            "community": node_community.get(node, 0),
         })
 
     edges = []
@@ -77,7 +87,19 @@ def _build_graph(messages: list[dict]) -> dict:
 
     nodes.sort(key=lambda n: n["message_count"], reverse=True)
 
-    return {"nodes": nodes, "edges": edges}
+    # Build community summary
+    communities = []
+    for idx, members in enumerate(community_sets):
+        community_nodes = [n for n in nodes if n["community"] == idx]
+        communities.append({
+            "id": idx,
+            "members": sorted(members),
+            "size": len(members),
+            "total_messages": sum(n["message_count"] for n in community_nodes),
+        })
+    communities.sort(key=lambda c: c["total_messages"], reverse=True)
+
+    return {"nodes": nodes, "edges": edges, "communities": communities}
 
 
 @app.get("/api/health")

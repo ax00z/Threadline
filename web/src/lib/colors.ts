@@ -1,4 +1,4 @@
-const PALETTE = [
+export const PALETTE = [
 	'#4f8ff7',
 	'#34d399',
 	'#f87171',
@@ -15,4 +15,8 @@ export function buildSenderColorMap(senders: string[]): Map<string, string> {
 	const map = new Map<string, string>();
 	senders.forEach((s, i) => map.set(s, PALETTE[i % PALETTE.length]));
 	return map;
+}
+
+export function communityColor(communityId: number): string {
+	return PALETTE[communityId % PALETTE.length];
 }

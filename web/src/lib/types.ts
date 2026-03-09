@@ -26,6 +26,8 @@ export interface GraphNode {
 	degree_centrality: number;
 	betweenness_centrality: number;
 	closeness_centrality: number;
+	pagerank: number;
+	community: number;
 }
 
 export interface GraphEdge {
@@ -34,9 +36,17 @@ export interface GraphEdge {
 	weight: number;
 }
 
+export interface Community {
+	id: number;
+	members: string[];
+	size: number;
+	total_messages: number;
+}
+
 export interface GraphData {
 	nodes: GraphNode[];
 	edges: GraphEdge[];
+	communities: Community[];
 }
 
 export interface UploadResponse {
