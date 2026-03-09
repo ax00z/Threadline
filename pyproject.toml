@@ -11,6 +11,7 @@ dependencies = [
     "uvicorn[standard]>=0.34",
     "python-multipart>=0.0.18",
     "networkx>=3.0",
+    "scipy>=1.11",
 ]
 
 [project.optional-dependencies]

@@ -5,7 +5,7 @@
 	import forceAtlas2 from 'graphology-layout-forceatlas2';
 	import { circular } from 'graphology-layout';
 	import type { GraphData, GraphNode } from '$lib/types';
-	import { buildSenderColorMap } from '$lib/colors';
+	import { communityColor } from '$lib/colors';
 
 	let { graph }: { graph: GraphData } = $props();
 
@@ -17,17 +17,18 @@
 		if (!graph.nodes.length) return;
 
 		const g = new Graph({ type: 'undirected', multi: false });
-		const colorMap = buildSenderColorMap(graph.nodes.map((n) => n.id));
 
 		graph.nodes.forEach((node) => {
 			g.addNode(node.id, {
 				label: node.id,
 				size: 5 + node.degree_centrality * 20,
-				color: colorMap.get(node.id) || '#555',
+				color: communityColor(node.community),
 				message_count: node.message_count,
 				degree_centrality: node.degree_centrality,
 				betweenness_centrality: node.betweenness_centrality,
 				closeness_centrality: node.closeness_centrality,
+				pagerank: node.pagerank,
+				community: node.community,
 			});
 		});
 
@@ -70,6 +71,8 @@
 				degree_centrality: attrs.degree_centrality,
 				betweenness_centrality: attrs.betweenness_centrality,
 				closeness_centrality: attrs.closeness_centrality,
+				pagerank: attrs.pagerank,
+				community: attrs.community,
 			};
 		});
 
@@ -98,8 +101,10 @@
 	{#if hovered}
 		<div class="tooltip">
 			<div class="tooltip-name">{hovered.id}</div>
+			<div class="tooltip-community" style="color: {communityColor(hovered.community)}">Community {hovered.community}</div>
 			<div class="metrics">
 				<div class="metric-row"><span>Messages</span><span>{hovered.message_count}</span></div>
+				<div class="metric-row"><span>PageRank</span><span>{hovered.pagerank.toFixed(4)}</span></div>
 				<div class="metric-row"><span>Degree</span><span>{hovered.degree_centrality.toFixed(3)}</span></div>
 				<div class="metric-row"><span>Betweenness</span><span>{hovered.betweenness_centrality.toFixed(3)}</span></div>
 				<div class="metric-row"><span>Closeness</span><span>{hovered.closeness_centrality.toFixed(3)}</span></div>
@@ -168,6 +173,12 @@
 		font-weight: 600;
 		font-size: 0.88rem;
 		color: var(--text-primary);
+		margin-bottom: 0.15rem;
+	}
+
+	.tooltip-community {
+		font-size: 0.72rem;
+		font-weight: 500;
 		margin-bottom: 0.4rem;
 	}
 
