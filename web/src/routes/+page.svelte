@@ -11,6 +11,8 @@
 	import Timeline from '$lib/components/Timeline.svelte';
 	import NetworkGraph from '$lib/components/NetworkGraph.svelte';
 	import CommunityPanel from '$lib/components/CommunityPanel.svelte';
+	import EntityPanel from '$lib/components/EntityPanel.svelte';
+	import QueryConsole from '$lib/components/QueryConsole.svelte';
 
 	type View = 'idle' | 'uploading' | 'parsed' | 'error';
 
@@ -49,7 +51,7 @@
 		<span class="logo">THREADLINE</span>
 		{#if view === 'parsed'}
 			<span class="file-label">{fileName}</span>
-			<button class="btn-new" onclick={reset}>↥ Upload new file</button>
+			<button class="btn-new" onclick={reset}>Upload new file</button>
 		{/if}
 	</header>
 
@@ -65,40 +67,52 @@
 		{:else if view === 'error'}
 			<div class="center-wrap">
 				<div class="error-card">
-					<p class="error-title">Failed to parse file</p>
+					<p class="error-title">Something went wrong</p>
 					<p class="error-detail">{error}</p>
 					<button onclick={reset}>Try again</button>
 				</div>
 			</div>
 		{:else if view === 'parsed' && data}
 			<div class="dashboard">
-				<div class="row-stats">
+				<!-- Summary stats -->
+				<section class="section-stats">
 					<StatsBar stats={data.stats} />
-				</div>
+				</section>
 
-				<div class="row-main">
-					<div class="col-sidebar">
+				<!-- People + Messages side by side (stacks on small screens) -->
+				<section class="section-main">
+					<div class="panel-people">
 						<SenderStats senders={data.stats.senders} />
 					</div>
-					<div class="col-content">
+					<div class="panel-messages">
 						<MessageTable messages={data.messages} {senderColors} />
 					</div>
-				</div>
+				</section>
 
-				<div class="row-timeline">
+				<!-- Activity over time -->
+				<section class="section-timeline">
 					<Timeline messages={data.messages} />
-				</div>
+				</section>
 
-				<div class="row-graph">
-					<div class="graph-grid">
-						<div class="graph-main">
-							<NetworkGraph graph={data.graph} />
-						</div>
-						<div class="graph-side">
-							<CommunityPanel communities={data.graph.communities} nodes={data.graph.nodes} />
-						</div>
+				<!-- Key details found (NER) -->
+				<section class="section-entities">
+					<EntityPanel ner={data.ner} />
+				</section>
+
+				<!-- Network graph + Groups -->
+				<section class="section-network">
+					<div class="panel-graph">
+						<NetworkGraph graph={data.graph} />
 					</div>
-				</div>
+					<div class="panel-groups">
+						<CommunityPanel communities={data.graph.communities} nodes={data.graph.nodes} />
+					</div>
+				</section>
+
+				<!-- Advanced: SQL console (collapsed by default) -->
+				<section class="section-advanced">
+					<QueryConsole />
+				</section>
 			</div>
 		{/if}
 	</main>
@@ -134,6 +148,9 @@
 		font-size: 0.85rem;
 		font-family: var(--font-mono);
 		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.btn-new {
@@ -144,6 +161,8 @@
 		padding: 0.4rem 0.9rem;
 		font-size: 0.82rem;
 		cursor: pointer;
+		white-space: nowrap;
+		transition: all 0.15s;
 	}
 
 	.btn-new:hover {
@@ -154,7 +173,7 @@
 	main {
 		flex: 1;
 		overflow-y: auto;
-		padding: 1rem 1.5rem;
+		padding: 1rem;
 		min-height: 0;
 	}
 
@@ -163,54 +182,85 @@
 		margin: 4rem auto;
 	}
 
+	/* === Dashboard Layout === */
 	.dashboard {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
-		height: 100%;
+		max-width: 1600px;
+		margin: 0 auto;
+		padding-bottom: 2rem;
 	}
 
-	.row-stats {
+	.section-stats {
 		flex-shrink: 0;
 	}
 
-	.row-main {
+	/* People + Messages: side by side, wrap on small */
+	.section-main {
 		display: grid;
-		grid-template-columns: 320px 1fr;
+		grid-template-columns: minmax(240px, 320px) 1fr;
 		gap: 1rem;
-		min-height: 400px;
+		min-height: 380px;
 	}
 
-	.col-sidebar {
+	.panel-people,
+	.panel-messages {
 		min-height: 0;
+		min-width: 0;
 	}
 
-	.col-content {
-		min-height: 0;
-	}
-
-	.row-timeline {
-		flex-shrink: 0;
-	}
-
-	.row-graph {
-		flex-shrink: 0;
-	}
-
-	.graph-grid {
+	/* Network + Groups: side by side, wrap on small */
+	.section-network {
 		display: grid;
-		grid-template-columns: 1fr 320px;
+		grid-template-columns: 1fr minmax(240px, 320px);
 		gap: 1rem;
 	}
 
-	.graph-main {
+	.panel-graph,
+	.panel-groups {
 		min-height: 0;
+		min-width: 0;
 	}
 
-	.graph-side {
-		min-height: 0;
+	.section-timeline,
+	.section-entities,
+	.section-advanced {
+		flex-shrink: 0;
 	}
 
+	/* === Responsive: stack columns when narrow === */
+	@media (max-width: 900px) {
+		main {
+			padding: 0.75rem;
+		}
+
+		.section-main {
+			grid-template-columns: 1fr;
+			min-height: auto;
+		}
+
+		.section-network {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	@media (max-width: 600px) {
+		header {
+			padding: 0.5rem 0.75rem;
+			gap: 0.5rem;
+		}
+
+		main {
+			padding: 0.5rem;
+		}
+
+		.dashboard {
+			gap: 0.75rem;
+		}
+	}
+
+	/* === Error card === */
 	.error-card {
 		background: var(--bg-card);
 		border: 1px solid #f87171;

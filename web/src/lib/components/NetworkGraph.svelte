@@ -88,8 +88,8 @@
 
 <div class="graph-card">
 	<div class="graph-header">
-		<span class="title">Communication Network</span>
-		<span class="meta">{graph.nodes.length} participants · {graph.edges.length} connections</span>
+		<span class="title">Who Talks to Who</span>
+		<span class="meta">{graph.nodes.length} people &middot; {graph.edges.length} connections</span>
 	</div>
 
 	{#if graph.nodes.length === 0}
@@ -101,13 +101,13 @@
 	{#if hovered}
 		<div class="tooltip">
 			<div class="tooltip-name">{hovered.id}</div>
-			<div class="tooltip-community" style="color: {communityColor(hovered.community)}">Community {hovered.community}</div>
+			<div class="tooltip-community" style="color: {communityColor(hovered.community)}">Group {hovered.community}</div>
 			<div class="metrics">
-				<div class="metric-row"><span>Messages</span><span>{hovered.message_count}</span></div>
-				<div class="metric-row"><span>PageRank</span><span>{hovered.pagerank.toFixed(4)}</span></div>
-				<div class="metric-row"><span>Degree</span><span>{hovered.degree_centrality.toFixed(3)}</span></div>
-				<div class="metric-row"><span>Betweenness</span><span>{hovered.betweenness_centrality.toFixed(3)}</span></div>
-				<div class="metric-row"><span>Closeness</span><span>{hovered.closeness_centrality.toFixed(3)}</span></div>
+				<div class="metric-row"><span>Messages sent</span><span>{hovered.message_count}</span></div>
+				<div class="metric-row"><span>Influence score</span><span>{(hovered.pagerank * 100).toFixed(1)}%</span></div>
+				<div class="metric-row"><span>Connections</span><span>{(hovered.degree_centrality * 100).toFixed(0)}%</span></div>
+				<div class="metric-row"><span>Bridge role</span><span>{(hovered.betweenness_centrality * 100).toFixed(1)}%</span></div>
+				<div class="metric-row"><span>Reachability</span><span>{(hovered.closeness_centrality * 100).toFixed(0)}%</span></div>
 			</div>
 		</div>
 	{/if}

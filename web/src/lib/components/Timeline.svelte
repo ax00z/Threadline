@@ -110,7 +110,7 @@
 </script>
 
 <div class="timeline">
-	<h3>Activity Timeline</h3>
+	<h3>Activity Over Time</h3>
 	<div class="chart-area">
 		<canvas bind:this={canvas}></canvas>
 	</div>

@@ -49,8 +49,24 @@ export interface GraphData {
 	communities: Community[];
 }
 
+export interface NerEntity {
+	text: string;
+	label: string;
+	count: number;
+	senders: string[];
+}
+
+export interface NerResult {
+	entities: Record<string, unknown>[];
+	unique_entities: NerEntity[];
+	label_counts: Record<string, number>;
+	sender_entities: Record<string, Record<string, string[]>>;
+	total_found: number;
+}
+
 export interface UploadResponse {
 	messages: Message[];
 	stats: ParseStats;
 	graph: GraphData;
+	ner: NerResult;
 }

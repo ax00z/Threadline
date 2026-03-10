@@ -9,7 +9,9 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
+from threadline.ner import extract_from_messages
 from threadline.parser import parse_file, detect_format
+from threadline.store import MessageStore
 
 app = FastAPI(title="Threadline")
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -22,6 +24,9 @@ app.add_middleware(
 
 _ACCEPTED = {".txt", ".json", ".csv"}
 _REPLY_WINDOW_SECS = 300  # 5 min, messages within this gap are considered a reply chain
+
+# In-memory DuckDB store (populated on upload, queried via /api/query)
+_store = MessageStore()
 
 
 def _build_graph(messages: list[dict]) -> dict:
@@ -140,9 +145,26 @@ async def upload(file: UploadFile = File(...)):
             "source_format": detect_format(tmp_path),
         }
         graph = _build_graph(messages)
-        return {"messages": messages, "stats": stats, "graph": graph}
+        ner = extract_from_messages(messages)
+        _store.load(messages)
+        return {"messages": messages, "stats": stats, "graph": graph, "ner": ner}
     finally:
         Path(tmp_path).unlink(missing_ok=True)
+
+
+from pydantic import BaseModel
+
+
+class QueryRequest(BaseModel):
+    sql: str
+
+
+@app.post("/api/query")
+async def query(req: QueryRequest):
+    result = _store.query(req.sql)
+    if "error" in result:
+        raise HTTPException(400, result["error"])
+    return result
 
 
 if __name__ == "__main__":
