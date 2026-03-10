@@ -23,7 +23,7 @@
 
 <div class="panel">
 	<div class="panel-header">
-		<span class="title">Communities</span>
+		<span class="title">Groups Found</span>
 		<span class="meta">{communities.length} detected</span>
 	</div>
 
@@ -32,8 +32,8 @@
 			<div class="community-card">
 				<div class="community-header">
 					<span class="dot" style="background: {communityColor(community.id)}"></span>
-					<span class="community-label">Community {community.id}</span>
-					<span class="community-size">{community.size} members</span>
+					<span class="community-label">Group {community.id}</span>
+					<span class="community-size">{community.size} {community.size === 1 ? 'person' : 'people'}</span>
 				</div>
 				<div class="members">
 					{#each community.members as member}
@@ -45,7 +45,7 @@
 						<div class="rank-row">
 							<span class="rank">#{i + 1}</span>
 							<span class="rank-name">{node.id}</span>
-							<span class="rank-value">PR {node.pagerank.toFixed(4)}</span>
+							<span class="rank-value">{(node.pagerank * 100).toFixed(1)}%</span>
 						</div>
 					{/each}
 				</div>
@@ -54,12 +54,12 @@
 
 		{#if bridges.length > 0}
 			<div class="bridge-section">
-				<div class="bridge-header">Cross-Community Bridges</div>
+				<div class="bridge-header">Key Connectors Between Groups</div>
 				{#each bridges as node}
 					<div class="bridge-row">
 						<span class="dot" style="background: {communityColor(node.community)}"></span>
 						<span class="bridge-name">{node.id}</span>
-						<span class="bridge-value">betw. {node.betweenness_centrality.toFixed(3)}</span>
+						<span class="bridge-value">{(node.betweenness_centrality * 100).toFixed(1)}% bridge</span>
 					</div>
 				{/each}
 			</div>

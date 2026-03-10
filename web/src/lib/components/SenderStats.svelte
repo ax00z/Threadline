@@ -59,7 +59,7 @@
 </script>
 
 <div class="sender-chart">
-	<h3>Participants</h3>
+	<h3>People</h3>
 	<div class="chart-area">
 		<canvas bind:this={canvas}></canvas>
 	</div>

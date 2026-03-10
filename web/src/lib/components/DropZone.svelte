@@ -65,11 +65,22 @@
 	<input bind:this={fileInput} type="file" accept=".txt,.json,.csv" onchange={handleFileInput} hidden />
 
 	{#if compact}
-		<span class="compact-label">↥ Upload new file</span>
+		<span class="compact-label">Upload new file</span>
 	{:else}
-		<div class="drop-icon">&#8613;</div>
-		<p class="title">Drop chat export here or click to browse</p>
-		<p class="subtitle">WhatsApp .txt &nbsp;·&nbsp; Telegram .json &nbsp;·&nbsp; CSV .csv</p>
+		<div class="drop-icon">
+			<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+				<polyline points="17 8 12 3 7 8" />
+				<line x1="12" y1="3" x2="12" y2="15" />
+			</svg>
+		</div>
+		<p class="title">Drop your chat file here, or click to browse</p>
+		<p class="subtitle">Supports WhatsApp exports, Telegram JSON, and CSV files</p>
+		<div class="format-badges">
+			<span class="badge">.txt</span>
+			<span class="badge">.json</span>
+			<span class="badge">.csv</span>
+		</div>
 	{/if}
 </div>
 
@@ -77,7 +88,7 @@
 	.dropzone {
 		border: 2px dashed var(--border);
 		border-radius: var(--radius);
-		padding: 4rem 2rem;
+		padding: 3.5rem 2rem;
 		text-align: center;
 		cursor: pointer;
 		transition: all 0.2s;
@@ -103,13 +114,18 @@
 	}
 
 	.drop-icon {
-		font-size: 3rem;
 		margin-bottom: 1rem;
 		color: var(--text-muted);
+		transition: color 0.2s;
+	}
+
+	.dropzone:hover .drop-icon,
+	.dropzone.dragover .drop-icon {
+		color: var(--accent);
 	}
 
 	.title {
-		font-size: 1.2rem;
+		font-size: 1.15rem;
 		font-weight: 600;
 		color: var(--text-primary);
 		margin-bottom: 0.4rem;
@@ -117,7 +133,24 @@
 
 	.subtitle {
 		color: var(--text-secondary);
-		font-size: 0.9rem;
+		font-size: 0.88rem;
+		margin-bottom: 1rem;
+	}
+
+	.format-badges {
+		display: flex;
+		justify-content: center;
+		gap: 0.5rem;
+	}
+
+	.badge {
+		font-size: 0.72rem;
+		font-family: var(--font-mono);
+		padding: 0.2rem 0.6rem;
+		border-radius: 9999px;
+		background: var(--bg-secondary);
+		color: var(--text-muted);
+		border: 1px solid var(--border);
 	}
 
 	.compact-label {

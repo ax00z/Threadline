@@ -27,25 +27,26 @@
 <div class="stats-bar">
 	<div class="stat">
 		<span class="value">{stats.total_messages.toLocaleString()}</span>
-		<span class="label">Messages</span>
+		<span class="label">Total Messages</span>
 	</div>
 	<div class="stat">
 		<span class="value">{stats.unique_senders}</span>
-		<span class="label">Participants</span>
+		<span class="label">People</span>
 	</div>
 	<div class="stat">
-		<span class="value">{fmtDate(stats.first_message)} – {fmtDate(stats.last_message)}</span>
-		<span class="label">Date Range ({days} days)</span>
+		<span class="value">{fmtDate(stats.first_message)} &ndash; {fmtDate(stats.last_message)}</span>
+		<span class="label">Time Span ({days} {days === 1 ? 'day' : 'days'})</span>
 	</div>
 	<div class="stat">
 		<span class="value">{perDay.toLocaleString()}</span>
-		<span class="label">Avg / Day</span>
+		<span class="label">Messages per Day</span>
 	</div>
 </div>
 
 <style>
 	.stats-bar {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 1px;
 		background: var(--border);
 		border-radius: var(--radius);
@@ -53,7 +54,7 @@
 	}
 
 	.stat {
-		flex: 1;
+		flex: 1 1 140px;
 		background: var(--bg-card);
 		padding: 1rem 1.2rem;
 		display: flex;
