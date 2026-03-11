@@ -23,9 +23,8 @@ app.add_middleware(
 )
 
 _ACCEPTED = {".txt", ".json", ".csv"}
-_REPLY_WINDOW_SECS = 300  # 5 min, messages within this gap are considered a reply chain
+_REPLY_WINDOW_SECS = 300
 
-# In-memory DuckDB store (populated on upload, queried via /api/query)
 _store = MessageStore()
 
 
@@ -36,7 +35,6 @@ def _build_graph(messages: list[dict]) -> dict:
     for sender, count in sender_counts.items():
         G.add_node(sender, message_count=count)
 
-    # edges: sender -> next sender within the reply window
     for i in range(len(messages) - 1):
         a = messages[i]["sender"]
         b = messages[i + 1]["sender"]
@@ -58,12 +56,12 @@ def _build_graph(messages: list[dict]) -> dict:
     if len(G.nodes) == 0:
         return {"nodes": [], "edges": [], "communities": []}
 
+    # TODO: these get slow on big graphs, might need to cache or run async
     degree_c = nx.degree_centrality(G)
     between_c = nx.betweenness_centrality(G, weight="weight")
     close_c = nx.closeness_centrality(G)
     pagerank = nx.pagerank(G, weight="weight")
 
-    # Community detection (Louvain)
     community_sets = nx.community.louvain_communities(G, weight="weight", seed=42)
     node_community: dict[str, int] = {}
     for idx, members in enumerate(community_sets):
@@ -92,7 +90,6 @@ def _build_graph(messages: list[dict]) -> dict:
 
     nodes.sort(key=lambda n: n["message_count"], reverse=True)
 
-    # Build community summary
     communities = []
     for idx, members in enumerate(community_sets):
         community_nodes = [n for n in nodes if n["community"] == idx]

@@ -13,8 +13,6 @@ def write_tmp(content: str, suffix: str = ".txt") -> str:
     return f.name
 
 
-# --- WhatsApp bracket format ---
-
 WA_BRACKET = """\
 [1/15/25, 2:34 PM] Marcus: hey what time are we meeting
 [1/15/25, 3:01 PM] Fiona: around 6 probably
@@ -54,8 +52,6 @@ def test_bracket_24h():
         os.unlink(p)
 
 
-# --- WhatsApp dash format ---
-
 WA_DASH = """\
 1/20/25, 9:10 AM - Nina: morning
 1/20/25, 9:11 AM - Tyler: hey
@@ -72,8 +68,6 @@ def test_dash_format():
         os.unlink(p)
 
 
-# --- Multi-line messages ---
-
 def test_multiline():
     chat = "[2/1/25, 10:00 AM] Sam: first line\nsecond line\nthird line\n[2/1/25, 10:01 AM] Jo: got it\n"
     p = write_tmp(chat)
@@ -85,8 +79,6 @@ def test_multiline():
     finally:
         os.unlink(p)
 
-
-# --- System message filtering ---
 
 def test_system_messages_filtered():
     chat = (
@@ -103,8 +95,6 @@ def test_system_messages_filtered():
         os.unlink(p)
 
 
-# --- Telegram JSON format ---
-
 TELEGRAM_DATA = {
     "name": "Test Chat",
     "type": "personal_chat",
@@ -120,7 +110,6 @@ def test_telegram_count():
     p = write_tmp(json.dumps(TELEGRAM_DATA), suffix=".json")
     try:
         msgs = list(parse_file(p))
-        # 2 plain messages + 1 rich text message; service message skipped
         assert len(msgs) == 3
     finally:
         os.unlink(p)
@@ -149,8 +138,6 @@ def test_telegram_list_format():
         os.unlink(p)
 
 
-# --- CSV format ---
-
 CSV_DATA = "timestamp,sender,body\n2025-03-01T09:00:00,Petra,good morning\n2025-03-01T09:01:00,Sven,morning\n"
 
 def test_csv_count():
@@ -173,15 +160,11 @@ def test_csv_fields():
         os.unlink(p)
 
 
-# --- Format detection ---
-
 def test_detect_format():
     assert detect_format("chat.txt") == "whatsapp"
     assert detect_format("export.json") == "telegram"
     assert detect_format("sms.csv") == "csv"
 
-
-# --- Model serialisation ---
 
 def test_message_to_dict():
     m = Message(timestamp="2025-01-01T10:00:00", sender="Sam", body="test", line_number=1, source_format="whatsapp")

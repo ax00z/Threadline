@@ -4,32 +4,41 @@
 	let { ner }: { ner: NerResult } = $props();
 
 	const LABEL_ICONS: Record<string, string> = {
+		PERSON: '👤',
+		ORG: '🏢',
+		LOCATION: '📍',
 		PHONE: '📞',
 		EMAIL: '✉️',
 		URL: '🔗',
 		MONEY: '💰',
 		CRYPTO_WALLET: '🪙',
-		COORDINATES: '📍',
+		COORDINATES: '🌐',
 		DATE: '📅'
 	};
 
 	const LABEL_COLORS: Record<string, string> = {
+		PERSON: '#f472b6',
+		ORG: '#c084fc',
+		LOCATION: '#2dd4bf',
 		PHONE: '#34d399',
 		EMAIL: '#4f8ff7',
 		URL: '#a78bfa',
 		MONEY: '#fbbf24',
 		CRYPTO_WALLET: '#fb923c',
-		COORDINATES: '#f472b6',
+		COORDINATES: '#818cf8',
 		DATE: '#38bdf8'
 	};
 
 	const LABEL_NAMES: Record<string, string> = {
+		PERSON: 'Person',
+		ORG: 'Organization',
+		LOCATION: 'Location',
 		PHONE: 'Phone',
 		EMAIL: 'Email',
 		URL: 'Link',
 		MONEY: 'Money',
 		CRYPTO_WALLET: 'Crypto',
-		COORDINATES: 'Location',
+		COORDINATES: 'Coords',
 		DATE: 'Date'
 	};
 
