@@ -103,6 +103,8 @@ def _parse_whatsapp(path: str) -> Generator[Message, None, None]:
 
 
 def _parse_telegram(path: str) -> Generator[Message, None, None]:
+    # loads the whole file into memory, not great for huge exports
+    # but telegram json is usually small enough
     with open(path, encoding="utf-8", errors="replace") as fh:
         data = json.load(fh)
 
@@ -151,7 +153,6 @@ def _parse_csv(path: str) -> Generator[Message, None, None]:
         dialect = csv.Sniffer().sniff(sample, delimiters=",;\t|")
         reader = csv.DictReader(fh, dialect=dialect)
 
-        # map common field name variants to our canonical names
         _TS_KEYS = ("timestamp", "date", "datetime", "time", "sent", "date_sent")
         _FROM_KEYS = ("sender", "from", "from_name", "name", "author", "contact")
         _BODY_KEYS = ("body", "message", "text", "content", "msg")

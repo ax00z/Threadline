@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-"""Generate synthetic WhatsApp/Telegram/CSV chat data for testing."""
 import argparse
 import json
 import random

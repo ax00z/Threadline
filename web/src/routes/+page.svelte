@@ -74,12 +74,10 @@
 			</div>
 		{:else if view === 'parsed' && data}
 			<div class="dashboard">
-				<!-- Summary stats -->
 				<section class="section-stats">
 					<StatsBar stats={data.stats} />
 				</section>
 
-				<!-- People + Messages side by side (stacks on small screens) -->
 				<section class="section-main">
 					<div class="panel-people">
 						<SenderStats senders={data.stats.senders} />
@@ -89,17 +87,14 @@
 					</div>
 				</section>
 
-				<!-- Activity over time -->
 				<section class="section-timeline">
 					<Timeline messages={data.messages} />
 				</section>
 
-				<!-- Key details found (NER) -->
 				<section class="section-entities">
 					<EntityPanel ner={data.ner} />
 				</section>
 
-				<!-- Network graph + Groups -->
 				<section class="section-network">
 					<div class="panel-graph">
 						<NetworkGraph graph={data.graph} />
@@ -109,7 +104,6 @@
 					</div>
 				</section>
 
-				<!-- Advanced: SQL console (collapsed by default) -->
 				<section class="section-advanced">
 					<QueryConsole />
 				</section>
@@ -182,7 +176,6 @@
 		margin: 4rem auto;
 	}
 
-	/* === Dashboard Layout === */
 	.dashboard {
 		display: flex;
 		flex-direction: column;
@@ -196,7 +189,6 @@
 		flex-shrink: 0;
 	}
 
-	/* People + Messages: side by side, wrap on small */
 	.section-main {
 		display: grid;
 		grid-template-columns: minmax(240px, 320px) 1fr;
@@ -210,7 +202,6 @@
 		min-width: 0;
 	}
 
-	/* Network + Groups: side by side, wrap on small */
 	.section-network {
 		display: grid;
 		grid-template-columns: 1fr minmax(240px, 320px);
@@ -229,7 +220,6 @@
 		flex-shrink: 0;
 	}
 
-	/* === Responsive: stack columns when narrow === */
 	@media (max-width: 900px) {
 		main {
 			padding: 0.75rem;
@@ -260,7 +250,6 @@
 		}
 	}
 
-	/* === Error card === */
 	.error-card {
 		background: var(--bg-card);
 		border: 1px solid #f87171;
