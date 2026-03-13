@@ -20,6 +20,8 @@ class MessageStore:
 
     def load(self, messages: list[dict]) -> int:
         self._con.execute("DELETE FROM messages")
+        if not messages:
+            return 0
         self._con.executemany(
             "INSERT INTO messages VALUES (?, ?, ?, ?, ?, ?)",
             [

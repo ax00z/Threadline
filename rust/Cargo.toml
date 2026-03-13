@@ -1,0 +1,18 @@
+[package]
+name = "threadline-verify"
+version = "0.1.0"
+edition = "2021"
+description = "standalone hash-chain verifier for threadline exports"
+
+[[bin]]
+name = "threadline-verify"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+
+[profile.release]
+lto = true
+strip = true

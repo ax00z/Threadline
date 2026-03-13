@@ -10,7 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 
+from threadline.anomaly import detect_anomalies
+from threadline.crypto import build_chain, verify_chain
 from threadline.ner import extract_from_messages
+from threadline.pairwise import compute_pairwise
 from threadline.parser import parse_file, detect_format
 from threadline.store import MessageStore
 
@@ -130,6 +133,7 @@ async def upload(file: UploadFile = File(...)):
 
     try:
         messages = [msg.to_dict() for msg in parse_file(tmp_path)]
+        messages = build_chain(messages)
 
         if not messages:
             raise HTTPException(422, "No messages found in file")
@@ -147,7 +151,19 @@ async def upload(file: UploadFile = File(...)):
             "source_format": fmt,
         }
 
-        return {"messages": messages, "stats": stats, "graph": graph, "ner": ner}
+        chain = verify_chain(messages)
+        anomalies = detect_anomalies(messages, ner_entities=ner.get("entities"))
+        pairwise = compute_pairwise(messages)
+
+        return {
+            "messages": messages,
+            "stats": stats,
+            "graph": graph,
+            "ner": ner,
+            "chain": chain,
+            "anomalies": anomalies,
+            "pairwise": pairwise,
+        }
     finally:
         Path(tmp_path).unlink(missing_ok=True)
 

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { ParseStats } from '$lib/types';
+	import type { ParseStats, ChainResult } from '$lib/types';
 
-	let { stats }: { stats: ParseStats } = $props();
+	let { stats, chain }: { stats: ParseStats; chain: ChainResult } = $props();
 
 	function fmtDate(iso: string): string {
 		return new Date(iso).toLocaleDateString('en-US', {
@@ -41,6 +41,15 @@
 		<span class="value">{perDay.toLocaleString()}</span>
 		<span class="label">Messages per Day</span>
 	</div>
+	<div class="stat chain-stat">
+		{#if chain.valid}
+			<span class="value chain-ok">Verified</span>
+			<span class="label">Chain Integrity ({chain.checked})</span>
+		{:else}
+			<span class="value chain-fail">Broken @ #{chain.broken_at}</span>
+			<span class="label">Chain Integrity</span>
+		{/if}
+	</div>
 </div>
 
 <style>
@@ -73,5 +82,13 @@
 		color: var(--text-secondary);
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
+	}
+
+	.chain-ok {
+		color: #34d399;
+	}
+
+	.chain-fail {
+		color: #f87171;
 	}
 </style>

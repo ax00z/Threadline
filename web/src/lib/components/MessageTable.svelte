@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Message } from '$lib/types';
+	import { filterState, selectPerson, clearSelection } from '$lib/selection.svelte';
 
 	let {
 		messages,
@@ -11,15 +12,50 @@
 
 	let search = $state('');
 
-	let filtered = $derived(
-		search
-			? messages.filter(
-					(m) =>
-						m.body.toLowerCase().includes(search.toLowerCase()) ||
-						m.sender.toLowerCase().includes(search.toLowerCase())
-				)
-			: messages
-	);
+	let filtered = $derived.by(() => {
+		let msgs = messages;
+		const sel = filterState.selection;
+		const tr = filterState.timeRange;
+
+		if (tr) {
+			msgs = msgs.filter((m) => m.timestamp >= tr.start && m.timestamp <= tr.end);
+		}
+
+		if (sel.kind === 'person') {
+			msgs = msgs.filter((m) => m.sender === sel.sender);
+		} else if (sel.kind === 'edge') {
+			msgs = msgs.filter(
+				(m) => m.sender === sel.source || m.sender === sel.target
+			);
+		} else if (sel.kind === 'entity') {
+			msgs = msgs.filter((m) => sel.senders.includes(m.sender));
+		} else if (sel.kind === 'anomaly') {
+			const idxSet = new Set(sel.indices);
+			msgs = msgs.filter((m) => m.chain_index !== undefined && idxSet.has(m.chain_index));
+		}
+
+		// text search
+		if (search) {
+			const q = search.toLowerCase();
+			msgs = msgs.filter(
+				(m) =>
+					m.body.toLowerCase().includes(q) ||
+					m.sender.toLowerCase().includes(q)
+			);
+		}
+
+		return msgs;
+	});
+
+	// label for the active filter
+	let filterLabel = $derived.by(() => {
+		const sel = filterState.selection;
+		if (sel.kind === 'person') return sel.sender;
+		if (sel.kind === 'edge') return `${sel.source} ↔ ${sel.target}`;
+		if (sel.kind === 'entity') return `${sel.label}: ${sel.text}`;
+		if (sel.kind === 'anomaly') return `Anomaly (${sel.indices.length} messages)`;
+		return '';
+	});
 
 	function fmtTime(iso: string): string {
 		const d = new Date(iso);
@@ -32,6 +68,13 @@
 </script>
 
 <div class="table-wrap">
+	{#if filterLabel}
+		<div class="filter-bar">
+			<span class="filter-label">Showing: {filterLabel}</span>
+			<button class="filter-clear" onclick={() => clearSelection()}>×</button>
+		</div>
+	{/if}
+
 	<div class="search-bar">
 		<input type="text" bind:value={search} placeholder="Search messages or senders…" />
 		<span class="count">{filtered.length.toLocaleString()} messages</span>
@@ -41,9 +84,13 @@
 		{#each filtered as msg (msg.line_number)}
 			<div class="row" style="border-left-color: {senderColors.get(msg.sender) || '#555'}">
 				<span class="ts">{fmtTime(msg.timestamp)}</span>
-				<span class="sender" style="color: {senderColors.get(msg.sender) || '#aaa'}"
-					>{msg.sender}</span
+				<button
+					class="sender"
+					style="color: {senderColors.get(msg.sender) || '#aaa'}"
+					onclick={() => selectPerson(msg.sender)}
 				>
+					{msg.sender}
+				</button>
 				<span class="body">{msg.body}</span>
 			</div>
 		{/each}
@@ -58,6 +105,38 @@
 		background: var(--bg-card);
 		border-radius: var(--radius);
 		overflow: hidden;
+	}
+
+	.filter-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.4rem 1rem;
+		background: var(--accent);
+		color: #fff;
+		font-size: 0.78rem;
+		font-weight: 500;
+	}
+
+	.filter-label {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.filter-clear {
+		background: none;
+		border: none;
+		color: #fff;
+		font-size: 1rem;
+		cursor: pointer;
+		padding: 0 0.3rem;
+		opacity: 0.7;
+		line-height: 1;
+	}
+
+	.filter-clear:hover {
+		opacity: 1;
 	}
 
 	.search-bar {
@@ -130,6 +209,15 @@
 		text-overflow: ellipsis;
 		flex-shrink: 0;
 		width: 120px;
+		background: none;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+		text-align: left;
+	}
+
+	.sender:hover {
+		text-decoration: underline;
 	}
 
 	.body {

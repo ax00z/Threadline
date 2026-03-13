@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import type { SenderBreakdown } from '$lib/types';
 	import { buildSenderColorMap } from '$lib/colors';
+	import { filterState, selectPerson } from '$lib/selection.svelte';
 	import {
 		Chart,
 		BarController,
@@ -17,13 +18,15 @@
 
 	let canvas: HTMLCanvasElement;
 	let chart: Chart | undefined;
+	let senderLabels: string[] = [];
+	let baseColors: string[] = [];
 
 	onMount(() => {
 		const sorted = Object.entries(senders).sort((a, b) => b[1] - a[1]);
-		const senderLabels = sorted.map(([name]) => name);
+		senderLabels = sorted.map(([name]) => name);
 		const senderValues = sorted.map(([, count]) => count);
 		const colorMap = buildSenderColorMap(senderLabels);
-		const senderColors = senderLabels.map((l) => colorMap.get(l) || '#555');
+		baseColors = senderLabels.map((l) => colorMap.get(l) || '#555');
 
 		if (senderLabels.length === 0) return;
 
@@ -32,12 +35,18 @@
 				type: 'bar',
 				data: {
 					labels: senderLabels,
-					datasets: [{ data: senderValues, backgroundColor: senderColors, borderRadius: 3 }]
+					datasets: [{ data: senderValues, backgroundColor: [...baseColors], borderRadius: 3 }]
 				},
 				options: {
 					indexAxis: 'y',
 					responsive: true,
 					maintainAspectRatio: false,
+					onClick(_e, elements) {
+						if (elements.length > 0) {
+							const name = senderLabels[elements[0].index];
+							selectPerson(name);
+						}
+					},
 					plugins: {
 						legend: { display: false },
 						tooltip: {
@@ -55,6 +64,21 @@
 		});
 
 		return () => chart?.destroy();
+	});
+
+	// dim bars that aren't the selected person
+	$effect(() => {
+		if (!chart || !chart.data.datasets[0]) return;
+		const sel = filterState.selection;
+		const ds = chart.data.datasets[0];
+		if (sel.kind === 'person') {
+			ds.backgroundColor = senderLabels.map((name, i) =>
+				name === sel.sender ? baseColors[i] : baseColors[i] + '30'
+			);
+		} else {
+			ds.backgroundColor = [...baseColors];
+		}
+		chart.update('none');
 	});
 </script>
 
@@ -90,5 +114,6 @@
 
 	canvas {
 		background: transparent !important;
+		cursor: pointer;
 	}
 </style>
