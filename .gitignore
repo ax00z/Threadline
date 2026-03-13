@@ -42,5 +42,8 @@ desktop.ini
 *.swp
 *.swo
 
+# Personal docs — not for public repos
+study_plan.md
+
 
 

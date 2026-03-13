@@ -6,20 +6,67 @@
 	import { circular } from 'graphology-layout';
 	import type { GraphData, GraphNode } from '$lib/types';
 	import { communityColor } from '$lib/colors';
+	import { filterState, selectPerson, selectEdge, clearSelection } from '$lib/selection.svelte';
 
 	let { graph }: { graph: GraphData } = $props();
 
 	let container: HTMLDivElement;
 	let renderer: Sigma | null = null;
+	let g: Graph | null = null;
 	let hovered = $state<GraphNode | null>(null);
+
+	function isNeighbor(nodeId: string, target: string): boolean {
+		if (!g) return false;
+		return g.hasEdge(nodeId, target) || g.hasEdge(target, nodeId);
+	}
+
+	function activeNodes(): Set<string> | null {
+		const sel = filterState.selection;
+		if (sel.kind === 'none') return null;
+		const set = new Set<string>();
+		if (sel.kind === 'person') {
+			set.add(sel.sender);
+			if (g) g.forEachNeighbor(sel.sender, (n) => set.add(n));
+		} else if (sel.kind === 'edge') {
+			set.add(sel.source);
+			set.add(sel.target);
+		} else if (sel.kind === 'entity') {
+			sel.senders.forEach((s) => set.add(s));
+		}
+		return set;
+	}
+
+	function activeEdges(): Set<string> | null {
+		const sel = filterState.selection;
+		if (sel.kind === 'none' || !g) return null;
+		const set = new Set<string>();
+		if (sel.kind === 'person') {
+			g.forEachEdge(sel.sender, (e) => set.add(e));
+		} else if (sel.kind === 'edge') {
+			g.forEachEdge((e, _attrs, src, tgt) => {
+				if (
+					(src === sel.source && tgt === sel.target) ||
+					(src === sel.target && tgt === sel.source)
+				) {
+					set.add(e);
+				}
+			});
+		} else if (sel.kind === 'entity') {
+			const ss = new Set(sel.senders);
+			g.forEachEdge((e, _attrs, src, tgt) => {
+				if (ss.has(src) && ss.has(tgt)) set.add(e);
+			});
+		}
+		return set;
+	}
 
 	onMount(() => {
 		if (!graph.nodes.length) return;
 
-		const g = new Graph({ type: 'undirected', multi: false });
+		g = new Graph({ type: 'undirected', multi: false });
 
 		graph.nodes.forEach((node) => {
-			g.addNode(node.id, {
+			g!.addNode(node.id, {
 				label: node.id,
 				size: 5 + node.degree_centrality * 20,
 				color: communityColor(node.community),
@@ -34,19 +81,20 @@
 
 		graph.edges.forEach((edge) => {
 			if (
-				g.hasNode(edge.source) &&
-				g.hasNode(edge.target) &&
-				!g.hasEdge(edge.source, edge.target)
+				g!.hasNode(edge.source) &&
+				g!.hasNode(edge.target) &&
+				!g!.hasEdge(edge.source, edge.target)
 			) {
-				g.addEdge(edge.source, edge.target, {
+				g!.addEdge(edge.source, edge.target, {
 					size: Math.max(1, Math.min(edge.weight, 6)),
 					color: '#374151',
+					weight: edge.weight,
 				});
 			}
 		});
 
-		circular.assign(g);
-		forceAtlas2.assign(g, {
+		circular.assign(g!);
+		forceAtlas2.assign(g!, {
 			iterations: 200,
 			settings: {
 				gravity: 1,
@@ -55,8 +103,9 @@
 			},
 		});
 
-		renderer = new Sigma(g, container, {
+		renderer = new Sigma(g!, container, {
 			renderEdgeLabels: false,
+			enableEdgeEvents: true,
 			labelFont: 'Inter, monospace',
 			labelSize: 11,
 			labelColor: { color: '#cbd5e1' },
@@ -64,7 +113,7 @@
 		});
 
 		renderer.on('enterNode', ({ node }) => {
-			const attrs = g.getNodeAttributes(node);
+			const attrs = g!.getNodeAttributes(node);
 			hovered = {
 				id: node,
 				message_count: attrs.message_count,
@@ -79,6 +128,65 @@
 		renderer.on('leaveNode', () => {
 			hovered = null;
 		});
+
+		renderer.on('clickNode', ({ node }) => {
+			selectPerson(node);
+		});
+
+		renderer.on('clickEdge', ({ edge }) => {
+			const [src, tgt] = g!.extremities(edge);
+			selectEdge(src, tgt);
+		});
+
+		renderer.on('clickStage', () => {
+			clearSelection();
+		});
+	});
+
+	// push visual changes into sigma whenever selection changes
+	$effect(() => {
+		if (!renderer || !g) return;
+		const nodes = activeNodes();
+		const edges = activeEdges();
+
+		const sel = filterState.selection;
+		renderer.setSetting('nodeReducer', (node: string, data: Record<string, any>) => {
+			if (!nodes) return data;
+			const res = { ...data };
+			if (nodes.has(node)) {
+				if (
+					(sel.kind === 'person' && node === sel.sender) ||
+					(sel.kind === 'edge' &&
+						(node === sel.source || node === sel.target))
+				) {
+					res.size = data.size * 1.3;
+					res.zIndex = 2;
+				}
+			} else {
+				res.color = '#2a2d38';
+				res.label = '';
+				res.size = data.size * 0.6;
+				res.zIndex = 0;
+			}
+			return res;
+		});
+
+		renderer.setSetting('edgeReducer', (edge: string, data: Record<string, any>) => {
+			if (!edges) return data;
+			const res = { ...data };
+			if (edges.has(edge)) {
+				res.color = '#4f8ff7';
+				res.size = Math.max(data.size, 2);
+				res.zIndex = 1;
+			} else {
+				res.color = '#1a1d24';
+				res.size = 0.5;
+				res.zIndex = 0;
+			}
+			return res;
+		});
+
+		renderer.refresh();
 	});
 
 	onDestroy(() => {
@@ -145,6 +253,11 @@
 		height: 450px;
 		width: 100%;
 		background: var(--bg-secondary);
+		cursor: grab;
+	}
+
+	.canvas-wrap:active {
+		cursor: grabbing;
 	}
 
 	.empty {

@@ -2,19 +2,24 @@
 
 Network analysis and timeline reconstruction for seized communication datasets.
 
-Built for investigators dealing with WhatsApp, Telegram, and SMS exports from forensic extractions. Replaces the spreadsheet workflow. 
-Drop a file, get a searchable message log, participant breakdown, and activity timeline immediately.
+Built for investigators dealing with WhatsApp, Telegram, and SMS exports from forensic extractions. Replaces the spreadsheet workflow.
+Drop a file, get a searchable message log, network graph, entity extraction, anomaly detection, and chain-of-custody verification immediately.
 
 ---
 
 ## What it does
 
 - Parses WhatsApp `.txt` exports, Telegram `.json` exports, and generic CSV from forensic tools
-- Builds a searchable message table with per-sender color coding
-- Shows participant message counts and a daily activity timeline
-- Streams files at O(1) memory. A 50k-line export uses around 400KB regardless of file size
-- Network graph (Phase 2, coming)
-- Air-gapped NLP entity extraction (Phase 3, coming)
+- Builds a searchable message table with per-sender color coding and cross-component filtering
+- Network graph with degree, betweenness, closeness centrality, PageRank, and Louvain community detection
+- Air-gapped NER: phones, emails, URLs, money, crypto wallets, coordinates, dates, persons, orgs, locations (regex + optional spaCy)
+- Anomaly detection: burst activity, off-hours messaging, late-appearing contacts, keyword co-occurrence flagging
+- Relationship timeline with per-pair sparklines, duration tracking, and sortable views
+- Evidence export: filtered JSONL (chain hashes intact) and full JSON investigation reports
+- SHA-256 hash chain of custody — tamper detection on every message, verified on upload
+- Standalone Rust verifier binary for independent chain verification
+- DuckDB SQL console for ad-hoc queries against the loaded dataset
+- Streams files at O(1) memory — a 50k-line export uses ~400KB regardless of file size
 
 ---
 
@@ -22,12 +27,14 @@ Drop a file, get a searchable message log, participant breakdown, and activity t
 
 | Layer | Tech |
 |---|---|
-| Parser / API | Python 3.11+, FastAPI |
+| Parser / Pipeline | Python 3.11+, FastAPI |
+| Graph Engine | NetworkX (centrality, Louvain communities) |
+| NLP | regex + spaCy (optional, air-gapped) |
+| DB | DuckDB (in-memory analytical queries) |
 | UI | SvelteKit 2, Svelte 5 |
+| Graph Viz | Sigma.js + Graphology (WebGL) |
 | Charts | Chart.js 4 |
-| Graph (Phase 2) | Sigma.js + Graphology |
-| DB (Phase 2) | DuckDB |
-| Crypto chain (Phase 5) | Rust |
+| Chain Verification | Python hashlib + Rust standalone binary |
 
 ---
 
@@ -84,6 +91,19 @@ python -m threadline parse sms_dump.csv --stats
 
 ---
 
+## Rust chain verifier
+
+Independently verify the hash chain without trusting the Python pipeline:
+
+```bash
+cd rust && cargo build --release
+./target/release/threadline-verify exported.jsonl
+```
+
+Reads JSONL from stdin or file arg. Recomputes every SHA-256 hash from scratch. Exits 0 if chain is intact, 2 if broken.
+
+---
+
 ## Tests
 
 ```bash
@@ -103,8 +123,8 @@ python scripts/gen_test_data.py -n 5000 -p 4 --format telegram -o data/test.json
 ## Roadmap
 
 - [x] Phase 1 — streaming parser, CLI, tests
-- [x] Phase 2 (partial) — FastAPI backend, SvelteKit dashboard
-- [x] Phase 2 — NetworkX graph engine, centrality metrics
-- [ ] Phase 3 — air-gapped spaCy NER (phones, locations, names)
-- [ ] Phase 4 — full tactical UI with graph view
-- [ ] Phase 5 — Rust cryptographic chain of custody (SHA-256 Merkle)
+- [x] Phase 2 — FastAPI backend, SvelteKit dashboard, NetworkX graph, DuckDB store
+- [x] Phase 3 — air-gapped NER (10 entity types, regex + optional spaCy)
+- [x] Phase 4 — tactical UI with cross-component selection, graph view, timeline brush
+- [x] Phase 5 — SHA-256 hash chain of custody (Python + Rust verifier)
+- [x] Phase 6 — anomaly detection, evidence export, relationship timeline

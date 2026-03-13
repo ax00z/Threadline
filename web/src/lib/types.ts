@@ -5,6 +5,15 @@ export interface Message {
 	line_number: number;
 	source_format: string;
 	entities: Record<string, unknown>[];
+	chain_hash?: string;
+	previous_hash?: string;
+	chain_index?: number;
+}
+
+export interface ChainResult {
+	valid: boolean;
+	checked: number;
+	broken_at: number | null;
 }
 
 export interface SenderBreakdown {
@@ -64,9 +73,37 @@ export interface NerResult {
 	total_found: number;
 }
 
+export interface Anomaly {
+	kind: 'burst' | 'off_hours' | 'new_contact' | 'keyword_cluster';
+	severity: 'high' | 'medium' | 'low';
+	timestamp: string;
+	description: string;
+	message_indices: number[];
+	actors: string[];
+}
+
+export interface PairwiseStats {
+	pair: [string, string];
+	first_contact: string;
+	last_contact: string;
+	message_count: number;
+	duration_days: number;
+	daily_counts: Record<string, number>;
+}
+
 export interface UploadResponse {
 	messages: Message[];
 	stats: ParseStats;
 	graph: GraphData;
 	ner: NerResult;
+	chain: ChainResult;
+	anomalies: Anomaly[];
+	pairwise: PairwiseStats[];
 }
+
+export type SelectionMode =
+	| { kind: 'none' }
+	| { kind: 'person'; sender: string }
+	| { kind: 'edge'; source: string; target: string }
+	| { kind: 'entity'; text: string; label: string; senders: string[] }
+	| { kind: 'anomaly'; indices: number[] };

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { NerResult } from '$lib/types';
+	import { filterState, selectEntity } from '$lib/selection.svelte';
 
 	let { ner }: { ner: NerResult } = $props();
 
@@ -22,11 +23,30 @@
 
 	let activeFilter = $state<string | null>(null);
 
-	let filtered = $derived(
-		activeFilter
-			? ner.unique_entities.filter((e) => e.label === activeFilter)
-			: ner.unique_entities
-	);
+	let filtered = $derived.by(() => {
+		let ents = ner.unique_entities;
+		const sel = filterState.selection;
+
+		if (sel.kind === 'person') {
+			ents = ents.filter((e) => e.senders.includes(sel.sender));
+		}
+
+		// label type chip filter
+		if (activeFilter) {
+			ents = ents.filter((e) => e.label === activeFilter);
+		}
+
+		return ents;
+	});
+
+	function handleEntityClick(entity: { text: string; label: string; senders: string[] }) {
+		selectEntity(entity.text, entity.label, entity.senders);
+	}
+
+	function isActive(entity: { text: string; label: string }) {
+		const sel = filterState.selection;
+		return sel.kind === 'entity' && sel.text === entity.text && sel.label === entity.label;
+	}
 </script>
 
 <div class="panel">
@@ -61,7 +81,11 @@
 		<div class="entity-list">
 			{#each filtered as entity (entity.label + '|' + entity.text)}
 				{@const cfg = lbl(entity.label)}
-				<div class="entity-row">
+				<button
+					class="entity-row"
+					class:entity-active={isActive(entity)}
+					onclick={() => handleEntityClick(entity)}
+				>
 					<span class="entity-badge" style="background: {cfg.color}20; color: {cfg.color}">
 						{cfg.name}
 					</span>
@@ -69,7 +93,7 @@
 					<span class="entity-meta">
 						{entity.count}x &middot; {entity.senders.join(', ')}
 					</span>
-				</div>
+				</button>
 			{/each}
 		</div>
 	{/if}
@@ -151,9 +175,20 @@
 		gap: 0.6rem;
 		padding: 0.4rem 1rem;
 		font-size: 0.8rem;
+		width: 100%;
+		background: none;
+		border: none;
+		border-left: 3px solid transparent;
+		cursor: pointer;
+		text-align: left;
 	}
 
 	.entity-row:hover {
+		background: var(--bg-hover);
+	}
+
+	.entity-active {
+		border-left-color: var(--accent);
 		background: var(--bg-hover);
 	}
 

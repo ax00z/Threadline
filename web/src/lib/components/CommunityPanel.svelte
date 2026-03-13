@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Community, GraphNode } from '$lib/types';
 	import { communityColor } from '$lib/colors';
+	import { filterState, selectPerson } from '$lib/selection.svelte';
 
 	let { communities, nodes }: { communities: Community[]; nodes: GraphNode[] } = $props();
 
@@ -16,6 +17,10 @@
 			.filter((n) => n.betweenness_centrality > 0.05)
 			.sort((a, b) => b.betweenness_centrality - a.betweenness_centrality)
 			.slice(0, 5);
+	}
+
+	function isSelected(name: string) {
+		return filterState.selection.kind === 'person' && filterState.selection.sender === name;
 	}
 
 	let bridges = $derived(bridgeNodes());
@@ -37,16 +42,22 @@
 				</div>
 				<div class="members">
 					{#each community.members as member}
-						<span class="member-tag">{member}</span>
+						<button
+							class="member-tag"
+							class:member-active={isSelected(member)}
+							onclick={() => selectPerson(member)}
+						>
+							{member}
+						</button>
 					{/each}
 				</div>
 				<div class="top-ranked">
 					{#each topByPagerank(community.id) as node, i}
-						<div class="rank-row">
+						<button class="rank-row" onclick={() => selectPerson(node.id)}>
 							<span class="rank">#{i + 1}</span>
 							<span class="rank-name">{node.id}</span>
 							<span class="rank-value">{(node.pagerank * 100).toFixed(1)}%</span>
-						</div>
+						</button>
 					{/each}
 				</div>
 			</div>
@@ -56,11 +67,11 @@
 			<div class="bridge-section">
 				<div class="bridge-header">Key Connectors Between Groups</div>
 				{#each bridges as node}
-					<div class="bridge-row">
+					<button class="bridge-row" onclick={() => selectPerson(node.id)}>
 						<span class="dot" style="background: {communityColor(node.community)}"></span>
 						<span class="bridge-name">{node.id}</span>
 						<span class="bridge-value">{(node.betweenness_centrality * 100).toFixed(1)}% bridge</span>
-					</div>
+					</button>
 				{/each}
 			</div>
 		{/if}
@@ -149,6 +160,20 @@
 		background: var(--bg-hover);
 		border-radius: 9999px;
 		color: var(--text-secondary);
+		border: 1px solid transparent;
+		cursor: pointer;
+		transition: all 0.12s;
+	}
+
+	.member-tag:hover {
+		border-color: var(--accent);
+		color: var(--text-primary);
+	}
+
+	.member-active {
+		background: var(--accent);
+		color: #fff;
+		border-color: transparent;
 	}
 
 	.top-ranked {
@@ -164,6 +189,16 @@
 		font-size: 0.72rem;
 		font-family: var(--font-mono);
 		color: var(--text-secondary);
+		background: none;
+		border: none;
+		padding: 0.15rem 0;
+		cursor: pointer;
+		width: 100%;
+		text-align: left;
+	}
+
+	.rank-row:hover .rank-name {
+		color: var(--accent);
 	}
 
 	.rank {
@@ -174,6 +209,7 @@
 	.rank-name {
 		flex: 1;
 		color: var(--text-primary);
+		transition: color 0.12s;
 	}
 
 	.rank-value {
@@ -198,11 +234,21 @@
 		gap: 0.5rem;
 		font-size: 0.78rem;
 		padding: 0.2rem 0;
+		background: none;
+		border: none;
+		cursor: pointer;
+		width: 100%;
+		text-align: left;
+	}
+
+	.bridge-row:hover .bridge-name {
+		color: var(--accent);
 	}
 
 	.bridge-name {
 		flex: 1;
 		color: var(--text-primary);
+		transition: color 0.12s;
 	}
 
 	.bridge-value {

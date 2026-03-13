@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { Message } from '$lib/types';
+	import { filterState, setTimeRange, clearTimeRange } from '$lib/selection.svelte';
 	import {
 		Chart,
 		BarController,
@@ -16,6 +17,15 @@
 
 	let canvas: HTMLCanvasElement;
 	let chart: Chart | undefined;
+	let allLabels: string[] = [];
+	let baseColor = '#4f8ff740';
+	let dimColor = '#4f8ff712';
+	let accentColor = '#4f8ff7';
+
+	// brush state
+	let dragStartIdx: number | null = null;
+	let dragEndIdx: number | null = null;
+	let isDragging = false;
 
 	function buildDailyCounts() {
 		const counts = new Map<string, number>();
@@ -38,8 +48,99 @@
 		return { labels, values };
 	}
 
+	function getBarIndex(e: MouseEvent): number | null {
+		if (!chart) return null;
+		const rect = canvas.getBoundingClientRect();
+		const x = e.clientX - rect.left;
+		const xScale = chart.scales.x;
+		if (!xScale) return null;
+		// find closest bar index by x position
+		let closest = -1;
+		let closestDist = Infinity;
+		for (let i = 0; i < allLabels.length; i++) {
+			const px = xScale.getPixelForValue(i);
+			const dist = Math.abs(px - x);
+			if (dist < closestDist) {
+				closestDist = dist;
+				closest = i;
+			}
+		}
+		return closest >= 0 ? closest : null;
+	}
+
+	function handleMouseDown(e: MouseEvent) {
+		const idx = getBarIndex(e);
+		if (idx === null) return;
+		isDragging = true;
+		dragStartIdx = idx;
+		dragEndIdx = idx;
+	}
+
+	function handleMouseMove(e: MouseEvent) {
+		if (!isDragging) return;
+		const idx = getBarIndex(e);
+		if (idx !== null) dragEndIdx = idx;
+		updateBrushVisuals();
+	}
+
+	function handleMouseUp() {
+		if (!isDragging) return;
+		isDragging = false;
+		if (dragStartIdx !== null && dragEndIdx !== null) {
+			const lo = Math.min(dragStartIdx, dragEndIdx);
+			const hi = Math.max(dragStartIdx, dragEndIdx);
+			if (lo === hi && allLabels.length > 1) {
+				// single click on a bar, just select that day
+			}
+			const startDate = allLabels[lo];
+			const endDate = allLabels[hi];
+			// pad end to end of day
+			setTimeRange(startDate + 'T00:00:00', endDate + 'T23:59:59');
+		}
+		updateBrushVisuals();
+	}
+
+	function updateBrushVisuals() {
+		if (!chart || !chart.data.datasets[0]) return;
+		const ds = chart.data.datasets[0];
+		if (dragStartIdx !== null && dragEndIdx !== null) {
+			const lo = Math.min(dragStartIdx, dragEndIdx);
+			const hi = Math.max(dragStartIdx, dragEndIdx);
+			ds.backgroundColor = allLabels.map((_, i) =>
+				i >= lo && i <= hi ? baseColor : dimColor
+			) as any;
+			ds.borderColor = allLabels.map((_, i) =>
+				i >= lo && i <= hi ? accentColor : accentColor + '30'
+			) as any;
+		}
+		chart.update('none');
+	}
+
+	function handleClearRange() {
+		clearTimeRange();
+		dragStartIdx = null;
+		dragEndIdx = null;
+		if (chart && chart.data.datasets[0]) {
+			chart.data.datasets[0].backgroundColor = baseColor;
+			chart.data.datasets[0].borderColor = accentColor;
+			chart.update('none');
+		}
+	}
+
+	// sync visuals when timeRange gets cleared externally (eg Escape key)
+	$effect(() => {
+		if (!filterState.timeRange && chart && chart.data.datasets[0]) {
+			dragStartIdx = null;
+			dragEndIdx = null;
+			chart.data.datasets[0].backgroundColor = baseColor;
+			chart.data.datasets[0].borderColor = accentColor;
+			chart.update('none');
+		}
+	});
+
 	onMount(() => {
 		const dc = buildDailyCounts();
+		allLabels = dc.labels;
 		if (dc.labels.length === 0) return;
 
 		requestAnimationFrame(() => {
@@ -50,8 +151,8 @@
 					datasets: [
 						{
 							data: dc.values,
-							backgroundColor: '#4f8ff740',
-							borderColor: '#4f8ff7',
+							backgroundColor: baseColor,
+							borderColor: accentColor,
 							borderWidth: 1,
 							borderRadius: 2
 						}
@@ -60,6 +161,7 @@
 				options: {
 					responsive: true,
 					maintainAspectRatio: false,
+					animation: false,
 					plugins: {
 						legend: { display: false },
 						tooltip: {
@@ -103,14 +205,33 @@
 					}
 				}
 			});
+
+			// attach drag handlers to the canvas
+			canvas.addEventListener('mousedown', handleMouseDown);
+			canvas.addEventListener('mousemove', handleMouseMove);
+			canvas.addEventListener('mouseup', handleMouseUp);
+			canvas.addEventListener('mouseleave', () => {
+				if (isDragging) handleMouseUp();
+			});
 		});
 
-		return () => chart?.destroy();
+		return () => {
+			canvas?.removeEventListener('mousedown', handleMouseDown);
+			canvas?.removeEventListener('mousemove', handleMouseMove);
+			canvas?.removeEventListener('mouseup', handleMouseUp);
+			chart?.destroy();
+		};
 	});
 </script>
 
 <div class="timeline">
-	<h3>Activity Over Time</h3>
+	<div class="timeline-header">
+		<h3>Activity Over Time</h3>
+		{#if filterState.timeRange}
+			<button class="clear-range" onclick={handleClearRange}>Clear range ✕</button>
+		{/if}
+	</div>
+	<div class="hint">drag to select a time range</div>
 	<div class="chart-area">
 		<canvas bind:this={canvas}></canvas>
 	</div>
@@ -123,16 +244,45 @@
 		padding: 1rem;
 	}
 
+	.timeline-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 0.3rem;
+	}
+
 	h3 {
 		font-size: 0.8rem;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
 		color: var(--text-secondary);
-		margin-bottom: 0.75rem;
+		margin: 0;
+	}
+
+	.hint {
+		font-size: 0.68rem;
+		color: var(--text-muted);
+		margin-bottom: 0.5rem;
+	}
+
+	.clear-range {
+		background: none;
+		border: 1px solid var(--accent);
+		border-radius: var(--radius-sm);
+		color: var(--accent);
+		font-size: 0.72rem;
+		padding: 0.2rem 0.5rem;
+		cursor: pointer;
+	}
+
+	.clear-range:hover {
+		background: var(--accent);
+		color: #fff;
 	}
 
 	.chart-area {
 		height: 200px;
 		position: relative;
+		cursor: crosshair;
 	}
 </style>

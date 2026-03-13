@@ -2,6 +2,7 @@
 	import { uploadFile } from '$lib/api';
 	import { buildSenderColorMap } from '$lib/colors';
 	import type { UploadResponse } from '$lib/types';
+	import { filterState, clearAll } from '$lib/selection.svelte';
 
 	import DropZone from '$lib/components/DropZone.svelte';
 	import ParseProgress from '$lib/components/ParseProgress.svelte';
@@ -12,6 +13,9 @@
 	import NetworkGraph from '$lib/components/NetworkGraph.svelte';
 	import CommunityPanel from '$lib/components/CommunityPanel.svelte';
 	import EntityPanel from '$lib/components/EntityPanel.svelte';
+	import AnomalyPanel from '$lib/components/AnomalyPanel.svelte';
+	import ExportToolbar from '$lib/components/ExportToolbar.svelte';
+	import RelationshipTimeline from '$lib/components/RelationshipTimeline.svelte';
 	import QueryConsole from '$lib/components/QueryConsole.svelte';
 
 	type View = 'idle' | 'uploading' | 'parsed' | 'error';
@@ -25,10 +29,28 @@
 		data ? buildSenderColorMap(Object.keys(data.stats.senders)) : new Map()
 	);
 
+	let hasFilter = $derived(filterState.selection.kind !== 'none' || filterState.timeRange !== null);
+
+	let filterSummary = $derived.by(() => {
+		const sel = filterState.selection;
+		const tr = filterState.timeRange;
+		const parts: string[] = [];
+		if (sel.kind === 'person') parts.push(sel.sender);
+		else if (sel.kind === 'edge') parts.push(`${sel.source} ↔ ${sel.target}`);
+		else if (sel.kind === 'entity') parts.push(`${sel.label}: ${sel.text}`);
+		else if (sel.kind === 'anomaly') parts.push(`Anomaly (${sel.indices.length} msgs)`);
+		if (tr) {
+			const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+			parts.push(`${fmt(tr.start)} – ${fmt(tr.end)}`);
+		}
+		return parts.join('  ·  ');
+	});
+
 	async function handleFile(file: File) {
 		fileName = file.name;
 		view = 'uploading';
 		error = '';
+		clearAll();
 		try {
 			data = await uploadFile(file);
 			view = 'parsed';
@@ -43,8 +65,17 @@
 		data = null;
 		error = '';
 		fileName = '';
+		clearAll();
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape' && hasFilter) {
+			clearAll();
+		}
 	}
 </script>
+
+<svelte:window onkeydown={handleKeydown} />
 
 <div class="app">
 	<header>
@@ -75,8 +106,24 @@
 		{:else if view === 'parsed' && data}
 			<div class="dashboard">
 				<section class="section-stats">
-					<StatsBar stats={data.stats} />
+					<StatsBar stats={data.stats} chain={data.chain} />
+					<ExportToolbar
+						messages={data.messages}
+						stats={data.stats}
+						graph={data.graph}
+						ner={data.ner}
+						chain={data.chain}
+						anomalies={data.anomalies}
+						pairwise={data.pairwise}
+					/>
 				</section>
+
+				{#if hasFilter}
+					<div class="selection-bar">
+						<span class="selection-text">{filterSummary}</span>
+						<button class="selection-clear" onclick={clearAll}>Clear ✕</button>
+					</div>
+				{/if}
 
 				<section class="section-main">
 					<div class="panel-people">
@@ -93,6 +140,14 @@
 
 				<section class="section-entities">
 					<EntityPanel ner={data.ner} />
+				</section>
+
+				<section class="section-anomalies">
+					<AnomalyPanel anomalies={data.anomalies} />
+				</section>
+
+				<section class="section-relationships">
+					<RelationshipTimeline pairwise={data.pairwise} />
 				</section>
 
 				<section class="section-network">
@@ -185,6 +240,39 @@
 		padding-bottom: 2rem;
 	}
 
+	.selection-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.4rem 1rem;
+		background: var(--bg-card);
+		border: 1px solid var(--accent);
+		border-radius: var(--radius-sm);
+		font-size: 0.78rem;
+	}
+
+	.selection-text {
+		color: var(--text-primary);
+		font-family: var(--font-mono);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.selection-clear {
+		background: none;
+		border: none;
+		color: var(--accent);
+		font-size: 0.75rem;
+		cursor: pointer;
+		padding: 0.15rem 0.4rem;
+		flex-shrink: 0;
+	}
+
+	.selection-clear:hover {
+		color: var(--text-primary);
+	}
+
 	.section-stats {
 		flex-shrink: 0;
 	}
@@ -216,8 +304,14 @@
 
 	.section-timeline,
 	.section-entities,
+	.section-anomalies,
+	.section-relationships,
 	.section-advanced {
 		flex-shrink: 0;
+	}
+
+	.section-stats :global(.toolbar) {
+		margin-top: 0.5rem;
 	}
 
 	@media (max-width: 900px) {
