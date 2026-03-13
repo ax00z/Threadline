@@ -1,6 +1,8 @@
 import pytest
 from threadline.ner import extract_entities, extract_from_messages, spacy_available
 
+needs_spacy = pytest.mark.skipif(not spacy_available(), reason="spacy not installed")
+
 
 def test_phone_extraction():
     ents = extract_entities("call me at +1-555-123-4567 ok?")
@@ -79,13 +81,14 @@ def test_extract_from_messages_dedup():
     ]
     result = extract_from_messages(msgs)
     phones = [e for e in result["unique_entities"] if e["label"] == "PHONE"]
+    assert len(phones) >= 1, "should find at least one phone"
     matching = [p for p in phones if "555-999-0000" in p["text"]]
-    if matching:
-        assert matching[0]["count"] == 2
-        assert len(matching[0]["senders"]) == 2
+    assert len(matching) == 1, "same number should be deduped into one entry"
+    assert matching[0]["count"] == 2
+    assert len(matching[0]["senders"]) == 2
 
 
-@pytest.mark.skipif(not spacy_available(), reason="spacy not installed")
+@needs_spacy
 def test_spacy_person():
     ents = extract_entities("I talked to John Smith about the deal")
     persons = [e for e in ents if e.label == "PERSON"]
@@ -93,14 +96,14 @@ def test_spacy_person():
     assert any("John" in p.text for p in persons)
 
 
-@pytest.mark.skipif(not spacy_available(), reason="spacy not installed")
+@needs_spacy
 def test_spacy_org():
     ents = extract_entities("he works at Goldman Sachs now")
     orgs = [e for e in ents if e.label == "ORG"]
     assert len(orgs) >= 1
 
 
-@pytest.mark.skipif(not spacy_available(), reason="spacy not installed")
+@needs_spacy
 def test_spacy_location():
     ents = extract_entities("they flew to Berlin last week")
     locs = [e for e in ents if e.label == "LOCATION"]
@@ -108,7 +111,7 @@ def test_spacy_location():
     assert any("Berlin" in l.text for l in locs)
 
 
-@pytest.mark.skipif(not spacy_available(), reason="spacy not installed")
+@needs_spacy
 def test_regex_wins_over_spacy():
     text = "email john@test.com from New York"
     ents = extract_entities(text)

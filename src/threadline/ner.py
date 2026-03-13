@@ -154,7 +154,7 @@ def spacy_available() -> bool:
 def extract_from_messages(messages: list[dict]) -> dict:
     all_entities: list[dict] = []
     label_counts: dict[str, int] = {}
-    sender_entities: dict[str, dict[str, list[str]]] = {}
+    sender_entities: dict[str, dict[str, set[str]]] = {}
 
     for msg in messages:
         body = msg.get("body", "")
@@ -175,9 +175,8 @@ def extract_from_messages(messages: list[dict]) -> dict:
             if sender not in sender_entities:
                 sender_entities[sender] = {}
             if e.label not in sender_entities[sender]:
-                sender_entities[sender][e.label] = []
-            if e.text not in sender_entities[sender][e.label]:
-                sender_entities[sender][e.label].append(e.text)
+                sender_entities[sender][e.label] = set()
+            sender_entities[sender][e.label].add(e.text)
 
     unique: dict[str, dict] = {}
     for e in all_entities:
@@ -199,7 +198,10 @@ def extract_from_messages(messages: list[dict]) -> dict:
         "entities": all_entities,
         "unique_entities": unique_list,
         "label_counts": label_counts,
-        "sender_entities": sender_entities,
+        "sender_entities": {
+            s: {lbl: sorted(texts) for lbl, texts in labels.items()}
+            for s, labels in sender_entities.items()
+        },
         "total_found": len(all_entities),
         "spacy_active": spacy_available(),
     }

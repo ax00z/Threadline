@@ -8,6 +8,7 @@ import networkx as nx
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from pydantic import BaseModel
 
 from threadline.ner import extract_from_messages
 from threadline.parser import parse_file, detect_format
@@ -54,7 +55,7 @@ def _build_graph(messages: list[dict]) -> dict:
             G.add_edge(a, b, weight=1)
 
     if len(G.nodes) == 0:
-        return {"nodes": [], "edges": [], "communities": []}
+        return {"nodes": [], "edges": [], "communities": [], "sender_counts": {}}
 
     # TODO: these get slow on big graphs, might need to cache or run async
     degree_c = nx.degree_centrality(G)
@@ -72,11 +73,11 @@ def _build_graph(messages: list[dict]) -> dict:
     for node, data in G.nodes(data=True):
         nodes.append({
             "id": node,
-            "message_count": data.get("message_count", 0),
-            "degree_centrality": round(degree_c.get(node, 0), 4),
-            "betweenness_centrality": round(between_c.get(node, 0), 4),
-            "closeness_centrality": round(close_c.get(node, 0), 4),
-            "pagerank": round(pagerank.get(node, 0), 4),
+            "message_count": data["message_count"],
+            "degree_centrality": round(degree_c[node], 4),
+            "betweenness_centrality": round(between_c[node], 4),
+            "closeness_centrality": round(close_c[node], 4),
+            "pagerank": round(pagerank[node], 4),
             "community": node_community.get(node, 0),
         })
 
@@ -85,7 +86,7 @@ def _build_graph(messages: list[dict]) -> dict:
         edges.append({
             "source": u,
             "target": v,
-            "weight": data.get("weight", 1),
+            "weight": data["weight"],
         })
 
     nodes.sort(key=lambda n: n["message_count"], reverse=True)
@@ -101,7 +102,12 @@ def _build_graph(messages: list[dict]) -> dict:
         })
     communities.sort(key=lambda c: c["total_messages"], reverse=True)
 
-    return {"nodes": nodes, "edges": edges, "communities": communities}
+    return {
+        "nodes": nodes,
+        "edges": edges,
+        "communities": communities,
+        "sender_counts": dict(sender_counts.most_common()),
+    }
 
 
 @app.get("/api/health")
@@ -116,40 +122,34 @@ async def upload(file: UploadFile = File(...)):
     if ext not in _ACCEPTED:
         raise HTTPException(400, f"Unsupported file type '{ext}'. Send .txt, .json, or .csv")
 
-    suffix = ext if ext else ".txt"
-    with tempfile.NamedTemporaryFile(mode="wb", suffix=suffix, delete=False) as tmp:
+    fmt = detect_format(name)
+    with tempfile.NamedTemporaryFile(mode="wb", suffix=ext, delete=False) as tmp:
         content = await file.read()
         tmp.write(content)
         tmp_path = tmp.name
 
     try:
-        messages = []
-        sender_counts: Counter[str] = Counter()
-        for msg in parse_file(tmp_path):
-            d = msg.to_dict()
-            messages.append(d)
-            sender_counts[msg.sender] += 1
+        messages = [msg.to_dict() for msg in parse_file(tmp_path)]
 
         if not messages:
             raise HTTPException(422, "No messages found in file")
 
-        stats = {
-            "total_messages": len(messages),
-            "unique_senders": len(sender_counts),
-            "senders": dict(sender_counts.most_common()),
-            "first_message": messages[0]["timestamp"],
-            "last_message": messages[-1]["timestamp"],
-            "source_format": detect_format(tmp_path),
-        }
         graph = _build_graph(messages)
         ner = extract_from_messages(messages)
         _store.load(messages)
+
+        stats = {
+            "total_messages": len(messages),
+            "unique_senders": len(graph["sender_counts"]),
+            "senders": graph["sender_counts"],
+            "first_message": messages[0]["timestamp"],
+            "last_message": messages[-1]["timestamp"],
+            "source_format": fmt,
+        }
+
         return {"messages": messages, "stats": stats, "graph": graph, "ner": ner}
     finally:
         Path(tmp_path).unlink(missing_ok=True)
-
-
-from pydantic import BaseModel
 
 
 class QueryRequest(BaseModel):

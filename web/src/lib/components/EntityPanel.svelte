@@ -3,44 +3,22 @@
 
 	let { ner }: { ner: NerResult } = $props();
 
-	const LABEL_ICONS: Record<string, string> = {
-		PERSON: '👤',
-		ORG: '🏢',
-		LOCATION: '📍',
-		PHONE: '📞',
-		EMAIL: '✉️',
-		URL: '🔗',
-		MONEY: '💰',
-		CRYPTO_WALLET: '🪙',
-		COORDINATES: '🌐',
-		DATE: '📅'
+	const LABELS: Record<string, { icon: string; color: string; name: string }> = {
+		PERSON:       { icon: '👤', color: '#f472b6', name: 'Person' },
+		ORG:          { icon: '🏢', color: '#c084fc', name: 'Organization' },
+		LOCATION:     { icon: '📍', color: '#2dd4bf', name: 'Location' },
+		PHONE:        { icon: '📞', color: '#34d399', name: 'Phone' },
+		EMAIL:        { icon: '✉️', color: '#4f8ff7', name: 'Email' },
+		URL:          { icon: '🔗', color: '#a78bfa', name: 'Link' },
+		MONEY:        { icon: '💰', color: '#fbbf24', name: 'Money' },
+		CRYPTO_WALLET:{ icon: '🪙', color: '#fb923c', name: 'Crypto' },
+		COORDINATES:  { icon: '🌐', color: '#818cf8', name: 'Coords' },
+		DATE:         { icon: '📅', color: '#38bdf8', name: 'Date' },
 	};
 
-	const LABEL_COLORS: Record<string, string> = {
-		PERSON: '#f472b6',
-		ORG: '#c084fc',
-		LOCATION: '#2dd4bf',
-		PHONE: '#34d399',
-		EMAIL: '#4f8ff7',
-		URL: '#a78bfa',
-		MONEY: '#fbbf24',
-		CRYPTO_WALLET: '#fb923c',
-		COORDINATES: '#818cf8',
-		DATE: '#38bdf8'
-	};
-
-	const LABEL_NAMES: Record<string, string> = {
-		PERSON: 'Person',
-		ORG: 'Organization',
-		LOCATION: 'Location',
-		PHONE: 'Phone',
-		EMAIL: 'Email',
-		URL: 'Link',
-		MONEY: 'Money',
-		CRYPTO_WALLET: 'Crypto',
-		COORDINATES: 'Coords',
-		DATE: 'Date'
-	};
+	function lbl(key: string) {
+		return LABELS[key] ?? { icon: '•', color: '#888', name: key };
+	}
 
 	let activeFilter = $state<string | null>(null);
 
@@ -72,19 +50,20 @@
 				<button
 					class="chip"
 					class:active={activeFilter === label}
-					style="--chip-color: {LABEL_COLORS[label] || '#888'}"
+					style="--chip-color: {lbl(label).color}"
 					onclick={() => (activeFilter = activeFilter === label ? null : label)}
 				>
-					{LABEL_ICONS[label] || '•'} {LABEL_NAMES[label] || label} ({count})
+					{lbl(label).icon} {lbl(label).name} ({count})
 				</button>
 			{/each}
 		</div>
 
 		<div class="entity-list">
-			{#each filtered as entity (entity.text + entity.label)}
+			{#each filtered as entity (entity.label + '|' + entity.text)}
+				{@const cfg = lbl(entity.label)}
 				<div class="entity-row">
-					<span class="entity-badge" style="background: {LABEL_COLORS[entity.label] || '#555'}20; color: {LABEL_COLORS[entity.label] || '#888'}">
-						{LABEL_NAMES[entity.label] || entity.label}
+					<span class="entity-badge" style="background: {cfg.color}20; color: {cfg.color}">
+						{cfg.name}
 					</span>
 					<span class="entity-text">{entity.text}</span>
 					<span class="entity-meta">
