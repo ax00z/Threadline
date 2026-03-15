@@ -16,6 +16,9 @@
 	import AnomalyPanel from '$lib/components/AnomalyPanel.svelte';
 	import ExportToolbar from '$lib/components/ExportToolbar.svelte';
 	import RelationshipTimeline from '$lib/components/RelationshipTimeline.svelte';
+	import SentimentPanel from '$lib/components/SentimentPanel.svelte';
+	import HeatmapPanel from '$lib/components/HeatmapPanel.svelte';
+	import ResponseTimePanel from '$lib/components/ResponseTimePanel.svelte';
 	import QueryConsole from '$lib/components/QueryConsole.svelte';
 
 	type View = 'idle' | 'uploading' | 'parsed' | 'error';
@@ -144,6 +147,18 @@
 
 				<section class="section-anomalies">
 					<AnomalyPanel anomalies={data.anomalies} />
+				</section>
+
+				<section class="section-insights">
+					<div class="panel-sentiment">
+						<SentimentPanel sentiment={data.sentiment} />
+					</div>
+					<div class="panel-heatmap">
+						<HeatmapPanel heatmap={data.heatmap} />
+					</div>
+					<div class="panel-response">
+						<ResponseTimePanel responseTimes={data.response_times} />
+					</div>
 				</section>
 
 				<section class="section-relationships">
@@ -302,6 +317,19 @@
 		min-width: 0;
 	}
 
+	.section-insights {
+		display: grid;
+		grid-template-columns: 1fr 1fr 1fr;
+		gap: 1rem;
+	}
+
+	.panel-sentiment,
+	.panel-heatmap,
+	.panel-response {
+		min-height: 0;
+		min-width: 0;
+	}
+
 	.section-timeline,
 	.section-entities,
 	.section-anomalies,
@@ -325,6 +353,10 @@
 		}
 
 		.section-network {
+			grid-template-columns: 1fr;
+		}
+
+		.section-insights {
 			grid-template-columns: 1fr;
 		}
 	}

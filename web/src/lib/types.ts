@@ -91,6 +91,32 @@ export interface PairwiseStats {
 	daily_counts: Record<string, number>;
 }
 
+export interface SentimentResult {
+	available: boolean;
+	overall: { positive: number; negative: number; neutral: number; compound: number };
+	per_sender: Record<string, { positive: number; negative: number; neutral: number; compound: number; message_count: number }>;
+	timeline: { timestamp: string; compound: number; sender: string }[];
+	extremes: {
+		most_positive: { body: string; sender: string; timestamp: string; compound: number } | null;
+		most_negative: { body: string; sender: string; timestamp: string; compound: number } | null;
+	};
+	shifts: { timestamp: string; sender: string; description: string; magnitude: number }[];
+}
+
+export interface HeatmapData {
+	matrix: number[][];
+	per_sender: Record<string, number[][]>;
+	peak: { day: string; hour: number; count: number };
+	day_labels: string[];
+}
+
+export interface ResponseTimeData {
+	per_sender: Record<string, { avg_seconds: number; median_seconds: number; min_seconds: number; count: number }>;
+	pairs: { pair: [string, string]; avg_seconds: number; count: number }[];
+	fastest: string | null;
+	slowest: string | null;
+}
+
 export interface UploadResponse {
 	messages: Message[];
 	stats: ParseStats;
@@ -99,6 +125,9 @@ export interface UploadResponse {
 	chain: ChainResult;
 	anomalies: Anomaly[];
 	pairwise: PairwiseStats[];
+	sentiment: SentimentResult;
+	heatmap: HeatmapData;
+	response_times: ResponseTimeData;
 }
 
 export type SelectionMode =

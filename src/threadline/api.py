@@ -8,6 +8,8 @@ import networkx as nx
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from threadline.anomaly import detect_anomalies
@@ -15,7 +17,10 @@ from threadline.crypto import build_chain, verify_chain
 from threadline.ner import extract_from_messages
 from threadline.pairwise import compute_pairwise
 from threadline.parser import parse_file, detect_format
+from threadline.sentiment import analyze_sentiment
 from threadline.store import MessageStore
+from threadline.heatmap import build_heatmap
+from threadline.response_time import compute_response_times
 
 app = FastAPI(title="Threadline")
 app.add_middleware(GZipMiddleware, minimum_size=1000)
@@ -25,6 +30,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+_WEB_BUILD = Path(__file__).resolve().parent.parent.parent / "web" / "build"
 
 _ACCEPTED = {".txt", ".json", ".csv"}
 _REPLY_WINDOW_SECS = 300
@@ -154,6 +161,9 @@ async def upload(file: UploadFile = File(...)):
         chain = verify_chain(messages)
         anomalies = detect_anomalies(messages, ner_entities=ner.get("entities"))
         pairwise = compute_pairwise(messages)
+        sentiment = analyze_sentiment(messages)
+        heatmap = build_heatmap(messages)
+        response_times = compute_response_times(messages)
 
         return {
             "messages": messages,
@@ -163,6 +173,9 @@ async def upload(file: UploadFile = File(...)):
             "chain": chain,
             "anomalies": anomalies,
             "pairwise": pairwise,
+            "sentiment": sentiment,
+            "heatmap": heatmap,
+            "response_times": response_times,
         }
     finally:
         Path(tmp_path).unlink(missing_ok=True)
@@ -179,6 +192,14 @@ async def query(req: QueryRequest):
         raise HTTPException(400, result["error"])
     return result
 
+
+if _WEB_BUILD.is_dir():
+    @app.get("/{path:path}")
+    async def spa_fallback(path: str):
+        file = _WEB_BUILD / path
+        if file.is_file():
+            return FileResponse(file)
+        return FileResponse(_WEB_BUILD / "index.html")
 
 if __name__ == "__main__":
     import uvicorn

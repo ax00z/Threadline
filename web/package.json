@@ -19,6 +19,7 @@
 		"vite": "^7.0.0"
 	},
 	"dependencies": {
+		"@sveltejs/adapter-static": "^3.0.10",
 		"chart.js": "^4.4.0",
 		"graphology": "^0.26.0",
 		"graphology-layout": "^0.6.1",
