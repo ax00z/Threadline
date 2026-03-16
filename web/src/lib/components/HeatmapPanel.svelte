@@ -16,9 +16,10 @@
 	function cellColor(val: number): string {
 		if (val === 0) return 'var(--bg-secondary)';
 		const intensity = val / maxVal;
-		const r = Math.round(79 + (248 - 79) * intensity);
-		const g = Math.round(143 + (113 - 143) * intensity);
-		const b = Math.round(247 + (113 - 247) * intensity);
+		// deep navy → bright accent blue
+		const r = Math.round(13 + (45 - 13) * intensity);
+		const g = Math.round(25 + (127 - 25) * intensity);
+		const b = Math.round(53 + (249 - 53) * intensity);
 		return `rgb(${r}, ${g}, ${b})`;
 	}
 
@@ -30,14 +31,17 @@
 	}
 
 	let hoveredCell = $state<{ day: number; hour: number; count: number } | null>(null);
+	let collapsed = $state(false);
 </script>
 
 <div class="panel">
-	<div class="panel-header">
+	<button class="panel-header" onclick={() => collapsed = !collapsed}>
+		<span class="toggle-icon">{collapsed ? '▸' : '▾'}</span>
 		<span class="panel-title">Activity Heatmap</span>
 		<span class="badge">peak: {heatmap.peak.day} {fmtHour(heatmap.peak.hour)} ({heatmap.peak.count})</span>
-	</div>
+	</button>
 
+	{#if !collapsed}
 	<div class="heatmap-wrap">
 		{#if hoveredCell}
 			<div class="tooltip">
@@ -73,6 +77,7 @@
 			<span class="legend-label">More</span>
 		</div>
 	</div>
+	{/if}
 </div>
 
 <style>
@@ -86,8 +91,20 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+		width: 100%;
 		padding: 0.75rem 1rem;
-		border-bottom: 1px solid var(--border);
+		border: none;
+		background: none;
+		cursor: pointer;
+		color: var(--text-primary);
+	}
+
+	.panel-header:hover { background: var(--bg-hover); }
+
+	.toggle-icon {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		width: 0.8rem;
 	}
 
 	.panel-title {

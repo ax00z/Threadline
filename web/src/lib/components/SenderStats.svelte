@@ -20,6 +20,7 @@
 	let chart: Chart | undefined;
 	let senderLabels: string[] = [];
 	let baseColors: string[] = [];
+	let collapsed = $state(false);
 
 	onMount(() => {
 		const sorted = Object.entries(senders).sort((a, b) => b[1] - a[1]);
@@ -31,6 +32,7 @@
 		if (senderLabels.length === 0) return;
 
 		requestAnimationFrame(() => {
+			if (collapsed) return;
 			chart = new Chart(canvas, {
 				type: 'bar',
 				data: {
@@ -56,8 +58,8 @@
 						}
 					},
 					scales: {
-						x: { grid: { color: '#2e3140' }, ticks: { color: '#8b8fa3' } },
-						y: { grid: { display: false }, ticks: { color: '#e1e4ea', font: { size: 11 } } }
+						x: { grid: { color: '#1b2535' }, ticks: { color: '#768390' } },
+						y: { grid: { display: false }, ticks: { color: '#cdd9e5', font: { size: 11 } } }
 					}
 				}
 			});
@@ -66,7 +68,6 @@
 		return () => chart?.destroy();
 	});
 
-	// dim bars that aren't the selected person
 	$effect(() => {
 		if (!chart || !chart.data.datasets[0]) return;
 		const sel = filterState.selection;
@@ -83,33 +84,66 @@
 </script>
 
 <div class="sender-chart">
-	<h3>People</h3>
-	<div class="chart-area">
-		<canvas bind:this={canvas}></canvas>
-	</div>
+	<button class="section-toggle" onclick={() => collapsed = !collapsed}>
+		<span class="toggle-icon">{collapsed ? '▸' : '▾'}</span>
+		<span class="toggle-title">People</span>
+		<span class="toggle-count">{Object.keys(senders).length}</span>
+	</button>
+	{#if !collapsed}
+		<div class="chart-area">
+			<canvas bind:this={canvas}></canvas>
+		</div>
+	{/if}
 </div>
 
 <style>
 	.sender-chart {
 		background: var(--bg-card);
 		border-radius: var(--radius);
-		padding: 1rem;
 		height: 100%;
 		display: flex;
 		flex-direction: column;
 	}
 
-	h3 {
+	.section-toggle {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		width: 100%;
+		padding: 0.75rem 1rem;
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: var(--text-primary);
+	}
+
+	.section-toggle:hover { background: var(--bg-hover); }
+
+	.toggle-icon {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		width: 0.8rem;
+	}
+
+	.toggle-title {
 		font-size: 0.8rem;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
 		color: var(--text-secondary);
-		margin-bottom: 0.75rem;
+		font-weight: 600;
+	}
+
+	.toggle-count {
+		margin-left: auto;
+		font-size: 0.72rem;
+		color: var(--text-muted);
+		font-family: var(--font-mono);
 	}
 
 	.chart-area {
 		height: 300px;
 		position: relative;
+		padding: 0.5rem 1rem 1rem;
 	}
 
 	canvas {

@@ -85,10 +85,10 @@
 	}
 
 	.chain-ok {
-		color: #34d399;
+		color: #57ab5a;
 	}
 
 	.chain-fail {
-		color: #f87171;
+		color: #e5534b;
 	}
 </style>

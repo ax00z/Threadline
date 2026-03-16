@@ -18,11 +18,11 @@
 	let canvas: HTMLCanvasElement;
 	let chart: Chart | undefined;
 	let allLabels: string[] = [];
-	let baseColor = '#4f8ff740';
-	let dimColor = '#4f8ff712';
-	let accentColor = '#4f8ff7';
+	let baseColor = '#2d7ff940';
+	let dimColor = '#2d7ff912';
+	let accentColor = '#2d7ff9';
+	let collapsed = $state(false);
 
-	// brush state
 	let dragStartIdx: number | null = null;
 	let dragEndIdx: number | null = null;
 	let isDragging = false;
@@ -54,7 +54,6 @@
 		const x = e.clientX - rect.left;
 		const xScale = chart.scales.x;
 		if (!xScale) return null;
-		// find closest bar index by x position
 		let closest = -1;
 		let closestDist = Infinity;
 		for (let i = 0; i < allLabels.length; i++) {
@@ -89,12 +88,8 @@
 		if (dragStartIdx !== null && dragEndIdx !== null) {
 			const lo = Math.min(dragStartIdx, dragEndIdx);
 			const hi = Math.max(dragStartIdx, dragEndIdx);
-			if (lo === hi && allLabels.length > 1) {
-				// single click on a bar, just select that day
-			}
 			const startDate = allLabels[lo];
 			const endDate = allLabels[hi];
-			// pad end to end of day
 			setTimeRange(startDate + 'T00:00:00', endDate + 'T23:59:59');
 		}
 		updateBrushVisuals();
@@ -127,7 +122,6 @@
 		}
 	}
 
-	// sync visuals when timeRange gets cleared externally (eg Escape key)
 	$effect(() => {
 		if (!filterState.timeRange && chart && chart.data.datasets[0]) {
 			dragStartIdx = null;
@@ -144,6 +138,7 @@
 		if (dc.labels.length === 0) return;
 
 		requestAnimationFrame(() => {
+			if (collapsed) return;
 			chart = new Chart(canvas, {
 				type: 'bar',
 				data: {
@@ -181,9 +176,9 @@
 					},
 					scales: {
 						x: {
-							grid: { color: '#2e3140' },
+							grid: { color: '#1b2535' },
 							ticks: {
-								color: '#8b8fa3',
+								color: '#768390',
 								maxRotation: 0,
 								maxTicksLimit: 12,
 								callback: function (_: any, index: number) {
@@ -199,14 +194,13 @@
 						},
 						y: {
 							beginAtZero: true,
-							grid: { color: '#2e3140' },
-							ticks: { color: '#8b8fa3' }
+							grid: { color: '#1b2535' },
+							ticks: { color: '#768390' }
 						}
 					}
 				}
 			});
 
-			// attach drag handlers to the canvas
 			canvas.addEventListener('mousedown', handleMouseDown);
 			canvas.addEventListener('mousemove', handleMouseMove);
 			canvas.addEventListener('mouseup', handleMouseUp);
@@ -225,44 +219,60 @@
 </script>
 
 <div class="timeline">
-	<div class="timeline-header">
-		<h3>Activity Over Time</h3>
+	<button class="section-toggle" onclick={() => collapsed = !collapsed}>
+		<span class="toggle-icon">{collapsed ? '▸' : '▾'}</span>
+		<span class="toggle-title">Activity Over Time</span>
 		{#if filterState.timeRange}
-			<button class="clear-range" onclick={handleClearRange}>Clear range ✕</button>
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<span class="clear-range" role="button" tabindex="-1" onclick={(e) => { e.stopPropagation(); handleClearRange(); }}>Clear range</span>
 		{/if}
-	</div>
-	<div class="hint">drag to select a time range</div>
-	<div class="chart-area">
-		<canvas bind:this={canvas}></canvas>
-	</div>
+		<span class="hint">drag to select a time range</span>
+	</button>
+	{#if !collapsed}
+		<div class="chart-area">
+			<canvas bind:this={canvas}></canvas>
+		</div>
+	{/if}
 </div>
 
 <style>
 	.timeline {
 		background: var(--bg-card);
 		border-radius: var(--radius);
-		padding: 1rem;
 	}
 
-	.timeline-header {
+	.section-toggle {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 0.3rem;
+		gap: 0.5rem;
+		width: 100%;
+		padding: 0.75rem 1rem;
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: var(--text-primary);
 	}
 
-	h3 {
+	.section-toggle:hover { background: var(--bg-hover); }
+
+	.toggle-icon {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		width: 0.8rem;
+	}
+
+	.toggle-title {
 		font-size: 0.8rem;
 		text-transform: uppercase;
 		letter-spacing: 0.04em;
 		color: var(--text-secondary);
-		margin: 0;
+		font-weight: 600;
 	}
 
 	.hint {
 		font-size: 0.68rem;
 		color: var(--text-muted);
-		margin-bottom: 0.5rem;
+		margin-left: auto;
 	}
 
 	.clear-range {
@@ -270,8 +280,8 @@
 		border: 1px solid var(--accent);
 		border-radius: var(--radius-sm);
 		color: var(--accent);
-		font-size: 0.72rem;
-		padding: 0.2rem 0.5rem;
+		font-size: 0.68rem;
+		padding: 0.15rem 0.4rem;
 		cursor: pointer;
 	}
 
@@ -284,5 +294,6 @@
 		height: 200px;
 		position: relative;
 		cursor: crosshair;
+		padding: 0.5rem 1rem 1rem;
 	}
 </style>

@@ -2,6 +2,7 @@
 	import type { SentimentResult } from '$lib/types';
 
 	let { sentiment }: { sentiment: SentimentResult } = $props();
+	let collapsed = $state(false);
 
 	let sortedSenders = $derived.by(() => {
 		return Object.entries(sentiment.per_sender)
@@ -13,9 +14,9 @@
 	}
 
 	function sentimentColor(compound: number): string {
-		if (compound >= 0.05) return '#34d399';
-		if (compound <= -0.05) return '#f87171';
-		return '#94a3b8';
+		if (compound >= 0.05) return '#57ab5a';
+		if (compound <= -0.05) return '#e5534b';
+		return '#768390';
 	}
 
 	function sentimentLabel(compound: number): string {
@@ -32,14 +33,15 @@
 </script>
 
 <div class="panel">
-	<div class="panel-header">
+	<button class="panel-header" onclick={() => collapsed = !collapsed}>
+		<span class="toggle-icon">{collapsed ? '▸' : '▾'}</span>
 		<span class="panel-title">Sentiment Analysis</span>
 		{#if !sentiment.available}
 			<span class="badge warn">install vaderSentiment</span>
 		{/if}
-	</div>
+	</button>
 
-	{#if sentiment.available}
+	{#if !collapsed && sentiment.available}
 		<div class="overall">
 			<div class="overall-score" style="color: {sentimentColor(sentiment.overall.compound)}">
 				{sentiment.overall.compound >= 0 ? '+' : ''}{sentiment.overall.compound.toFixed(3)}
@@ -109,7 +111,7 @@
 				{/if}
 			</div>
 		{/if}
-	{:else}
+	{:else if !collapsed}
 		<div class="empty">Install vaderSentiment for sentiment analysis</div>
 	{/if}
 </div>
@@ -125,8 +127,20 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+		width: 100%;
 		padding: 0.75rem 1rem;
-		border-bottom: 1px solid var(--border);
+		border: none;
+		background: none;
+		cursor: pointer;
+		color: var(--text-primary);
+	}
+
+	.panel-header:hover { background: var(--bg-hover); }
+
+	.toggle-icon {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		width: 0.8rem;
 	}
 
 	.panel-title {
@@ -136,7 +150,7 @@
 	}
 
 	.badge.warn {
-		background: #fbbf24;
+		background: #c69026;
 		color: #000;
 		font-size: 0.65rem;
 		padding: 0.1rem 0.45rem;
@@ -195,9 +209,9 @@
 		transition: width 0.3s;
 	}
 
-	.bar-fill.pos { background: #34d399; }
-	.bar-fill.neg { background: #f87171; }
-	.bar-fill.neu { background: #94a3b8; }
+	.bar-fill.pos { background: #57ab5a; }
+	.bar-fill.neg { background: #e5534b; }
+	.bar-fill.neu { background: #768390; }
 
 	.bar-val {
 		font-size: 0.65rem;
@@ -311,8 +325,8 @@
 		letter-spacing: 0.04em;
 	}
 
-	.pos-text { color: #34d399; }
-	.neg-text { color: #f87171; }
+	.pos-text { color: #57ab5a; }
+	.neg-text { color: #e5534b; }
 
 	.extreme-sender {
 		font-size: 0.72rem;

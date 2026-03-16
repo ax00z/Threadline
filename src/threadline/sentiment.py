@@ -41,6 +41,9 @@ def analyze_sentiment(messages: list[dict]) -> dict:
         })
 
     n = len(scored)
+    if n == 0:
+        return {**_empty_result(), "available": True}
+
     overall = {
         "positive": sum(s["pos"] for s in scored) / n,
         "negative": sum(s["neg"] for s in scored) / n,

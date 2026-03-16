@@ -5,7 +5,7 @@
 	import forceAtlas2 from 'graphology-layout-forceatlas2';
 	import { circular } from 'graphology-layout';
 	import type { GraphData, GraphNode } from '$lib/types';
-	import { communityColor } from '$lib/colors';
+	import { communityColor, nodeColor } from '$lib/colors';
 	import { filterState, selectPerson, selectEdge, clearSelection } from '$lib/selection.svelte';
 
 	let { graph }: { graph: GraphData } = $props();
@@ -14,11 +14,11 @@
 	let renderer: Sigma | null = null;
 	let g: Graph | null = null;
 	let hovered = $state<GraphNode | null>(null);
+	let collapsed = $state(false);
 
-	function isNeighbor(nodeId: string, target: string): boolean {
-		if (!g) return false;
-		return g.hasEdge(nodeId, target) || g.hasEdge(target, nodeId);
-	}
+	// drag state
+	let draggedNode: string | null = null;
+	let isDragging = false;
 
 	function activeNodes(): Set<string> | null {
 		const sel = filterState.selection;
@@ -65,11 +65,22 @@
 
 		g = new Graph({ type: 'undirected', multi: false });
 
-		graph.nodes.forEach((node) => {
+		// Compute relative node sizes based on pagerank
+		const pageranks = graph.nodes.map((n) => n.pagerank);
+		const maxPR = Math.max(...pageranks, 0.001);
+		const minPR = Math.min(...pageranks);
+		const prRange = maxPR - minPR || 1;
+		const MIN_SIZE = 4;
+		const MAX_SIZE = 16;
+
+		graph.nodes.forEach((node, idx) => {
+			const color = nodeColor(idx);
+			const normalized = (node.pagerank - minPR) / prRange;
+			const size = MIN_SIZE + normalized * (MAX_SIZE - MIN_SIZE);
 			g!.addNode(node.id, {
 				label: node.id,
-				size: 5 + node.degree_centrality * 20,
-				color: communityColor(node.community),
+				size,
+				color: color,
 				message_count: node.message_count,
 				degree_centrality: node.degree_centrality,
 				betweenness_centrality: node.betweenness_centrality,
@@ -79,15 +90,20 @@
 			});
 		});
 
+		// Compute relative edge sizes based on weight
+		const weights = graph.edges.map((e) => e.weight);
+		const maxW = Math.max(...weights, 1);
+
 		graph.edges.forEach((edge) => {
 			if (
 				g!.hasNode(edge.source) &&
 				g!.hasNode(edge.target) &&
 				!g!.hasEdge(edge.source, edge.target)
 			) {
+				const normalizedW = edge.weight / maxW;
 				g!.addEdge(edge.source, edge.target, {
-					size: Math.max(1, Math.min(edge.weight, 6)),
-					color: '#374151',
+					size: 0.4 + normalizedW * 1.6,
+					color: '#8b949e30',
 					weight: edge.weight,
 				});
 			}
@@ -95,24 +111,59 @@
 
 		circular.assign(g!);
 		forceAtlas2.assign(g!, {
-			iterations: 200,
+			iterations: 300,
 			settings: {
-				gravity: 1,
-				scalingRatio: 8,
-				strongGravityMode: true,
+				gravity: 0.5,
+				scalingRatio: 50,
+				strongGravityMode: false,
+				barnesHutOptimize: true,
 			},
 		});
 
 		renderer = new Sigma(g!, container, {
 			renderEdgeLabels: false,
 			enableEdgeEvents: true,
-			labelFont: 'Inter, monospace',
+			labelFont: '"Inter", sans-serif',
 			labelSize: 11,
-			labelColor: { color: '#cbd5e1' },
-			defaultEdgeColor: '#374151',
+			labelWeight: '500',
+			labelColor: { color: '#cdd9e5' },
+			defaultEdgeColor: '#8b949e30',
+			defaultNodeType: 'circle',
+			stagePadding: 60,
+			labelRenderedSizeThreshold: 0,
+		});
+
+		// --- Node drag support ---
+		renderer.on('downNode', (e) => {
+			isDragging = true;
+			draggedNode = e.node;
+			// disable camera movement while dragging
+			renderer!.getCamera().disable();
+		});
+
+		renderer.getMouseCaptor().on('mousemovebody', (e: any) => {
+			if (!isDragging || !draggedNode || !renderer || !g) return;
+			// convert viewport coords to graph coords
+			const pos = renderer.viewportToGraph(e);
+			g.setNodeAttribute(draggedNode, 'x', pos.x);
+			g.setNodeAttribute(draggedNode, 'y', pos.y);
+		});
+
+		renderer.getMouseCaptor().on('mouseup', () => {
+			if (isDragging && draggedNode) {
+				isDragging = false;
+				draggedNode = null;
+				renderer?.getCamera().enable();
+			}
+		});
+
+		renderer.getMouseCaptor().on('mousedown', () => {
+			// if clicking empty space (not a node), ensure we're not dragging
+			if (!renderer?.getCustomBBox()) return;
 		});
 
 		renderer.on('enterNode', ({ node }) => {
+			if (isDragging) return;
 			const attrs = g!.getNodeAttributes(node);
 			hovered = {
 				id: node,
@@ -123,14 +174,16 @@
 				pagerank: attrs.pagerank,
 				community: attrs.community,
 			};
+			container.style.cursor = 'grab';
 		});
 
 		renderer.on('leaveNode', () => {
 			hovered = null;
+			if (!isDragging) container.style.cursor = 'default';
 		});
 
 		renderer.on('clickNode', ({ node }) => {
-			selectPerson(node);
+			if (!isDragging) selectPerson(node);
 		});
 
 		renderer.on('clickEdge', ({ edge }) => {
@@ -139,11 +192,10 @@
 		});
 
 		renderer.on('clickStage', () => {
-			clearSelection();
+			if (!isDragging) clearSelection();
 		});
 	});
 
-	// push visual changes into sigma whenever selection changes
 	$effect(() => {
 		if (!renderer || !g) return;
 		const nodes = activeNodes();
@@ -163,9 +215,9 @@
 					res.zIndex = 2;
 				}
 			} else {
-				res.color = '#2a2d38';
+				res.color = '#1b253580';
 				res.label = '';
-				res.size = data.size * 0.6;
+				res.size = data.size * 0.5;
 				res.zIndex = 0;
 			}
 			return res;
@@ -175,12 +227,12 @@
 			if (!edges) return data;
 			const res = { ...data };
 			if (edges.has(edge)) {
-				res.color = '#4f8ff7';
-				res.size = Math.max(data.size, 2);
+				res.color = '#2d7ff9aa';
+				res.size = Math.max(data.size, 1.2);
 				res.zIndex = 1;
 			} else {
-				res.color = '#1a1d24';
-				res.size = 0.5;
+				res.color = '#0a0e1400';
+				res.size = 0.15;
 				res.zIndex = 0;
 			}
 			return res;
@@ -195,27 +247,34 @@
 </script>
 
 <div class="graph-card">
-	<div class="graph-header">
-		<span class="title">Who Talks to Who</span>
-		<span class="meta">{graph.nodes.length} people &middot; {graph.edges.length} connections</span>
-	</div>
+	<button class="graph-header" onclick={() => collapsed = !collapsed}>
+		<span class="toggle-icon">{collapsed ? '▸' : '▾'}</span>
+		<span class="title">Network Analysis</span>
+		<span class="hint">drag nodes to rearrange</span>
+		<span class="meta">{graph.nodes.length} nodes &middot; {graph.edges.length} edges</span>
+	</button>
 
-	{#if graph.nodes.length === 0}
-		<div class="empty">Not enough data to build a network graph.</div>
-	{:else}
-		<div class="canvas-wrap" bind:this={container}></div>
+	{#if !collapsed}
+		{#if graph.nodes.length === 0}
+			<div class="empty">Not enough data to build a network graph.</div>
+		{:else}
+			<div class="canvas-wrap" bind:this={container}></div>
+		{/if}
 	{/if}
 
-	{#if hovered}
+	{#if !collapsed && hovered}
 		<div class="tooltip">
 			<div class="tooltip-name">{hovered.id}</div>
-			<div class="tooltip-community" style="color: {communityColor(hovered.community)}">Group {hovered.community}</div>
+			<div class="tooltip-community" style="color: {communityColor(hovered.community)}">
+				<span class="community-dot" style="background: {communityColor(hovered.community)}"></span>
+				Cluster {hovered.community}
+			</div>
 			<div class="metrics">
-				<div class="metric-row"><span>Messages sent</span><span>{hovered.message_count}</span></div>
-				<div class="metric-row"><span>Influence score</span><span>{(hovered.pagerank * 100).toFixed(1)}%</span></div>
-				<div class="metric-row"><span>Connections</span><span>{(hovered.degree_centrality * 100).toFixed(0)}%</span></div>
-				<div class="metric-row"><span>Bridge role</span><span>{(hovered.betweenness_centrality * 100).toFixed(1)}%</span></div>
-				<div class="metric-row"><span>Reachability</span><span>{(hovered.closeness_centrality * 100).toFixed(0)}%</span></div>
+				<div class="metric-row"><span class="metric-label">Messages</span><span class="metric-val">{hovered.message_count}</span></div>
+				<div class="metric-row"><span class="metric-label">Influence</span><span class="metric-val">{(hovered.pagerank * 100).toFixed(1)}%</span></div>
+				<div class="metric-row"><span class="metric-label">Connectivity</span><span class="metric-val">{(hovered.degree_centrality * 100).toFixed(0)}%</span></div>
+				<div class="metric-row"><span class="metric-label">Bridge Score</span><span class="metric-val">{(hovered.betweenness_centrality * 100).toFixed(1)}%</span></div>
+				<div class="metric-row"><span class="metric-label">Reach</span><span class="metric-val">{(hovered.closeness_centrality * 100).toFixed(0)}%</span></div>
 			</div>
 		</div>
 	{/if}
@@ -223,41 +282,71 @@
 
 <style>
 	.graph-card {
-		background: var(--bg-card);
+		background: #060a10;
 		border-radius: var(--radius);
 		overflow: hidden;
 		position: relative;
+		border: 1px solid var(--border);
 	}
 
 	.graph-header {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		padding: 0.75rem 1rem;
-		border-bottom: 1px solid var(--border);
+		width: 100%;
+		padding: 0.65rem 1rem;
+		border: none;
+		border-bottom: 1px solid #111b28;
+		background: #080c14;
+		gap: 0.5rem;
+		cursor: pointer;
+		color: var(--text-primary);
+	}
+
+	.graph-header:hover { background: #0c1018; }
+
+	.toggle-icon {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		width: 0.8rem;
 	}
 
 	.title {
 		font-weight: 600;
-		font-size: 0.88rem;
+		font-size: 0.82rem;
 		color: var(--text-primary);
+		letter-spacing: 0.02em;
+	}
+
+	.hint {
+		font-size: 0.68rem;
+		color: var(--text-muted);
+		flex: 1;
 	}
 
 	.meta {
-		font-size: 0.78rem;
+		font-size: 0.72rem;
 		color: var(--text-muted);
 		font-family: var(--font-mono);
 	}
 
 	.canvas-wrap {
-		height: 450px;
+		height: 500px;
 		width: 100%;
-		background: var(--bg-secondary);
-		cursor: grab;
+		background: radial-gradient(ellipse at center, #0c1220 0%, #060a10 70%, #030508 100%);
+		cursor: default;
+		position: relative;
 	}
 
-	.canvas-wrap:active {
-		cursor: grabbing;
+	.canvas-wrap::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background:
+			linear-gradient(rgba(45, 127, 249, 0.03) 1px, transparent 1px),
+			linear-gradient(90deg, rgba(45, 127, 249, 0.03) 1px, transparent 1px);
+		background-size: 40px 40px;
+		pointer-events: none;
+		z-index: 1;
 	}
 
 	.empty {
@@ -266,46 +355,65 @@
 		align-items: center;
 		justify-content: center;
 		color: var(--text-muted);
-		font-size: 0.85rem;
+		font-size: 0.82rem;
 	}
 
 	.tooltip {
 		position: absolute;
 		bottom: 1rem;
 		left: 1rem;
-		background: var(--bg-secondary);
-		border: 1px solid var(--border);
+		background: #0a0f18ee;
+		border: 1px solid #1b2535;
 		border-radius: var(--radius-sm);
-		padding: 0.6rem 0.8rem;
+		padding: 0.65rem 0.85rem;
 		pointer-events: none;
 		z-index: 10;
-		min-width: 180px;
+		min-width: 190px;
+		backdrop-filter: blur(12px);
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 	}
 
 	.tooltip-name {
 		font-weight: 600;
 		font-size: 0.88rem;
-		color: var(--text-primary);
-		margin-bottom: 0.15rem;
+		color: #e6edf3;
+		margin-bottom: 0.2rem;
 	}
 
 	.tooltip-community {
-		font-size: 0.72rem;
+		font-size: 0.7rem;
 		font-weight: 500;
-		margin-bottom: 0.4rem;
+		margin-bottom: 0.5rem;
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+
+	.community-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		display: inline-block;
 	}
 
 	.metrics {
 		display: flex;
 		flex-direction: column;
-		gap: 0.2rem;
+		gap: 0.25rem;
 	}
 
 	.metric-row {
 		display: flex;
 		justify-content: space-between;
-		font-size: 0.78rem;
-		color: var(--text-secondary);
+		font-size: 0.72rem;
 		font-family: var(--font-mono);
+	}
+
+	.metric-label {
+		color: var(--text-muted);
+	}
+
+	.metric-val {
+		color: var(--text-secondary);
 	}
 </style>

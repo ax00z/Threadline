@@ -5,16 +5,16 @@
 	let { ner }: { ner: NerResult } = $props();
 
 	const LABELS: Record<string, { icon: string; color: string; name: string }> = {
-		PERSON:       { icon: '👤', color: '#f472b6', name: 'Person' },
-		ORG:          { icon: '🏢', color: '#c084fc', name: 'Organization' },
-		LOCATION:     { icon: '📍', color: '#2dd4bf', name: 'Location' },
-		PHONE:        { icon: '📞', color: '#34d399', name: 'Phone' },
-		EMAIL:        { icon: '✉️', color: '#4f8ff7', name: 'Email' },
-		URL:          { icon: '🔗', color: '#a78bfa', name: 'Link' },
-		MONEY:        { icon: '💰', color: '#fbbf24', name: 'Money' },
-		CRYPTO_WALLET:{ icon: '🪙', color: '#fb923c', name: 'Crypto' },
-		COORDINATES:  { icon: '🌐', color: '#818cf8', name: 'Coords' },
-		DATE:         { icon: '📅', color: '#38bdf8', name: 'Date' },
+		PERSON:       { icon: '👤', color: '#e07ab5', name: 'Person' },
+		ORG:          { icon: '🏢', color: '#b083f0', name: 'Organization' },
+		LOCATION:     { icon: '📍', color: '#00b4d8', name: 'Location' },
+		PHONE:        { icon: '📞', color: '#57ab5a', name: 'Phone' },
+		EMAIL:        { icon: '✉️', color: '#2d7ff9', name: 'Email' },
+		URL:          { icon: '🔗', color: '#986ee2', name: 'Link' },
+		MONEY:        { icon: '💰', color: '#c69026', name: 'Money' },
+		CRYPTO_WALLET:{ icon: '🪙', color: '#d49e6a', name: 'Crypto' },
+		COORDINATES:  { icon: '🌐', color: '#56b6c2', name: 'Coords' },
+		DATE:         { icon: '📅', color: '#2d7ff9', name: 'Date' },
 	};
 
 	function lbl(key: string) {
@@ -22,6 +22,7 @@
 	}
 
 	let activeFilter = $state<string | null>(null);
+	let collapsed = $state(false);
 
 	let filtered = $derived.by(() => {
 		let ents = ner.unique_entities;
@@ -50,12 +51,15 @@
 </script>
 
 <div class="panel">
-	<div class="panel-header">
+	<button class="panel-header" onclick={() => collapsed = !collapsed}>
+		<span class="toggle-icon">{collapsed ? '▸' : '▾'}</span>
 		<span class="title">Key Details Found</span>
 		<span class="meta">{ner.total_found} items</span>
-	</div>
+	</button>
 
-	{#if ner.total_found === 0}
+	{#if collapsed}
+		<!-- collapsed -->
+	{:else if ner.total_found === 0}
 		<div class="empty">No phone numbers, emails, or other details were found in the messages.</div>
 	{:else}
 		<div class="label-chips">
@@ -109,15 +113,34 @@
 	.panel-header {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		gap: 0.5rem;
 		padding: 0.75rem 1rem;
 		border-bottom: 1px solid var(--border);
+		background: none;
+		border-top: none;
+		border-left: none;
+		border-right: none;
+		cursor: pointer;
+		width: 100%;
+		text-align: left;
+		color: inherit;
+	}
+
+	.panel-header:hover {
+		background: var(--bg-hover);
+	}
+
+	.toggle-icon {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		width: 0.8rem;
 	}
 
 	.title {
 		font-weight: 600;
 		font-size: 0.88rem;
 		color: var(--text-primary);
+		flex: 1;
 	}
 
 	.meta {

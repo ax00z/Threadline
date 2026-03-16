@@ -1,14 +1,29 @@
+// Palantir-inspired muted intelligence palette
 export const PALETTE = [
-	'#4f8ff7',
-	'#34d399',
-	'#f87171',
-	'#fbbf24',
-	'#a78bfa',
-	'#f472b6',
-	'#38bdf8',
-	'#fb923c',
-	'#4ade80',
-	'#e879f9'
+	'#2d7ff9',
+	'#00b4d8',
+	'#e5534b',
+	'#c69026',
+	'#b083f0',
+	'#e07ab5',
+	'#56b6c2',
+	'#d49e6a',
+	'#57ab5a',
+	'#986ee2',
+];
+
+// Graph palette — muted but distinct, Palantir-style
+export const GRAPH_PALETTE = [
+	'#5b9bd5',
+	'#d4726a',
+	'#8fbc8f',
+	'#c4a35a',
+	'#9a8ec2',
+	'#d48f6a',
+	'#6bb5b5',
+	'#c27a9a',
+	'#7aab7a',
+	'#7a9ec2',
 ];
 
 export function buildSenderColorMap(senders: string[]): Map<string, string> {
@@ -18,5 +33,10 @@ export function buildSenderColorMap(senders: string[]): Map<string, string> {
 }
 
 export function communityColor(communityId: number): string {
-	return PALETTE[communityId % PALETTE.length];
+	return GRAPH_PALETTE[communityId % GRAPH_PALETTE.length];
+}
+
+/** Assign each node a unique color from the graph palette by index. */
+export function nodeColor(index: number): string {
+	return GRAPH_PALETTE[index % GRAPH_PALETTE.length];
 }

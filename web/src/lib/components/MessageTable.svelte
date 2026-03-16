@@ -11,6 +11,7 @@
 	} = $props();
 
 	let search = $state('');
+	let collapsed = $state(false);
 
 	let filtered = $derived.by(() => {
 		let msgs = messages;
@@ -67,34 +68,41 @@
 	}
 </script>
 
-<div class="table-wrap">
-	{#if filterLabel}
-		<div class="filter-bar">
-			<span class="filter-label">Showing: {filterLabel}</span>
-			<button class="filter-clear" onclick={() => clearSelection()}>×</button>
+<div class="table-wrap" class:collapsed>
+	<button class="collapse-header" onclick={() => collapsed = !collapsed}>
+		<span class="collapse-icon">{collapsed ? '▸' : '▾'}</span>
+		<span class="collapse-title">Messages</span>
+		<span class="collapse-count">{filtered.length.toLocaleString()}</span>
+	</button>
+
+	{#if !collapsed}
+		{#if filterLabel}
+			<div class="filter-bar">
+				<span class="filter-label">Showing: {filterLabel}</span>
+				<button class="filter-clear" onclick={() => clearSelection()}>×</button>
+			</div>
+		{/if}
+
+		<div class="search-bar">
+			<input type="text" bind:value={search} placeholder="Search messages or senders…" />
+		</div>
+
+		<div class="scroll-area">
+			{#each filtered as msg (msg.line_number)}
+				<div class="row" style="border-left-color: {senderColors.get(msg.sender) || '#555'}">
+					<span class="ts">{fmtTime(msg.timestamp)}</span>
+					<button
+						class="sender"
+						style="color: {senderColors.get(msg.sender) || '#aaa'}"
+						onclick={() => selectPerson(msg.sender)}
+					>
+						{msg.sender}
+					</button>
+					<span class="body">{msg.body}</span>
+				</div>
+			{/each}
 		</div>
 	{/if}
-
-	<div class="search-bar">
-		<input type="text" bind:value={search} placeholder="Search messages or senders…" />
-		<span class="count">{filtered.length.toLocaleString()} messages</span>
-	</div>
-
-	<div class="scroll-area">
-		{#each filtered as msg (msg.line_number)}
-			<div class="row" style="border-left-color: {senderColors.get(msg.sender) || '#555'}">
-				<span class="ts">{fmtTime(msg.timestamp)}</span>
-				<button
-					class="sender"
-					style="color: {senderColors.get(msg.sender) || '#aaa'}"
-					onclick={() => selectPerson(msg.sender)}
-				>
-					{msg.sender}
-				</button>
-				<span class="body">{msg.body}</span>
-			</div>
-		{/each}
-	</div>
 </div>
 
 <style>
@@ -105,6 +113,46 @@
 		background: var(--bg-card);
 		border-radius: var(--radius);
 		overflow: hidden;
+	}
+
+	.table-wrap.collapsed {
+		height: auto;
+	}
+
+	.collapse-header {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.6rem 1rem;
+		background: none;
+		border: none;
+		border-bottom: 1px solid var(--border);
+		cursor: pointer;
+		color: var(--text-primary);
+		width: 100%;
+		text-align: left;
+	}
+
+	.collapse-header:hover {
+		background: var(--bg-hover);
+	}
+
+	.collapse-icon {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		width: 0.8rem;
+	}
+
+	.collapse-title {
+		font-weight: 600;
+		font-size: 0.82rem;
+	}
+
+	.collapse-count {
+		font-size: 0.72rem;
+		color: var(--text-muted);
+		font-family: var(--font-mono);
+		margin-left: auto;
 	}
 
 	.filter-bar {

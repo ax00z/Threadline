@@ -257,7 +257,7 @@
 
 	.error-msg {
 		padding: 0.5rem 1rem;
-		color: #f87171;
+		color: #e5534b;
 		font-size: 0.8rem;
 		font-family: var(--font-mono);
 	}

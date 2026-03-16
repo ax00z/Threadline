@@ -5,6 +5,7 @@
 	let { pairwise }: { pairwise: PairwiseStats[] } = $props();
 
 	let sortBy = $state<'messages' | 'recent' | 'duration'>('messages');
+	let collapsed = $state(false);
 
 	let sorted = $derived.by(() => {
 		const copy = [...pairwise];
@@ -56,16 +57,23 @@
 
 <div class="panel">
 	<div class="panel-header">
-		<span class="panel-title">Relationships</span>
-		<span class="badge">{pairwise.length}</span>
-		<div class="sort-controls">
-			<button class:active={sortBy === 'messages'} onclick={() => (sortBy = 'messages')}>Messages</button>
-			<button class:active={sortBy === 'recent'} onclick={() => (sortBy = 'recent')}>Recent</button>
-			<button class:active={sortBy === 'duration'} onclick={() => (sortBy = 'duration')}>Duration</button>
-		</div>
+		<button class="toggle-btn" onclick={() => collapsed = !collapsed}>
+			<span class="toggle-icon">{collapsed ? '▸' : '▾'}</span>
+			<span class="panel-title">Relationships</span>
+			<span class="badge">{pairwise.length}</span>
+		</button>
+		{#if !collapsed}
+			<div class="sort-controls">
+				<button class:active={sortBy === 'messages'} onclick={() => (sortBy = 'messages')}>Messages</button>
+				<button class:active={sortBy === 'recent'} onclick={() => (sortBy = 'recent')}>Recent</button>
+				<button class:active={sortBy === 'duration'} onclick={() => (sortBy = 'duration')}>Duration</button>
+			</div>
+		{/if}
 	</div>
 
-	{#if pairwise.length > 0}
+	{#if collapsed}
+		<!-- collapsed -->
+	{:else if pairwise.length > 0}
 		<div class="list">
 			{#each sorted as pair}
 				{@const spark = sparklineBars(pair)}
@@ -117,10 +125,32 @@
 		border-bottom: 1px solid var(--border);
 	}
 
+	.toggle-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: inherit;
+		padding: 0;
+	}
+
+	.toggle-btn:hover .panel-title {
+		color: var(--accent);
+	}
+
+	.toggle-icon {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		width: 0.8rem;
+	}
+
 	.panel-title {
 		font-weight: 600;
 		font-size: 0.85rem;
 		color: var(--text-primary);
+		transition: color 0.1s;
 	}
 
 	.badge {

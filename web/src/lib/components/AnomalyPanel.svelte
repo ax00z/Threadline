@@ -5,20 +5,21 @@
 	let { anomalies }: { anomalies: Anomaly[] } = $props();
 
 	const KIND_META: Record<string, { label: string; color: string }> = {
-		burst: { label: 'Burst', color: '#f87171' },
-		off_hours: { label: 'Off-Hours', color: '#fbbf24' },
-		new_contact: { label: 'New Contact', color: '#4f8ff7' },
-		keyword_cluster: { label: 'Keywords', color: '#a78bfa' },
+		burst: { label: 'Burst', color: '#e5534b' },
+		off_hours: { label: 'Off-Hours', color: '#c69026' },
+		new_contact: { label: 'New Contact', color: '#2d7ff9' },
+		keyword_cluster: { label: 'Keywords', color: '#b083f0' },
 	};
 
 	const SEV_COLORS: Record<string, string> = {
-		high: '#f87171',
-		medium: '#fbbf24',
-		low: '#4f8ff7',
+		high: '#e5534b',
+		medium: '#c69026',
+		low: '#2d7ff9',
 	};
 
 	type KindFilter = string | null;
 	let activeKind = $state<KindFilter>(null);
+	let collapsed = $state(false);
 
 	let kindCounts = $derived.by(() => {
 		const counts: Record<string, number> = {};
@@ -58,12 +59,15 @@
 </script>
 
 <div class="panel">
-	<div class="panel-header">
+	<button class="panel-header" onclick={() => collapsed = !collapsed}>
+		<span class="toggle-icon">{collapsed ? '▸' : '▾'}</span>
 		<span class="panel-title">Anomalies</span>
 		<span class="badge">{anomalies.length}</span>
-	</div>
+	</button>
 
-	{#if anomalies.length > 0}
+	{#if collapsed}
+		<!-- collapsed -->
+	{:else if anomalies.length > 0}
 		<div class="chips">
 			<button
 				class="chip"
@@ -118,12 +122,31 @@
 		gap: 0.5rem;
 		padding: 0.75rem 1rem;
 		border-bottom: 1px solid var(--border);
+		background: none;
+		border-top: none;
+		border-left: none;
+		border-right: none;
+		cursor: pointer;
+		width: 100%;
+		text-align: left;
+		color: inherit;
+	}
+
+	.panel-header:hover {
+		background: var(--bg-hover);
+	}
+
+	.toggle-icon {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		width: 0.8rem;
 	}
 
 	.panel-title {
 		font-weight: 600;
 		font-size: 0.85rem;
 		color: var(--text-primary);
+		flex: 1;
 	}
 
 	.badge {

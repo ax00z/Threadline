@@ -183,12 +183,32 @@ def detect_keyword_clusters(
         "DATE": "time",
     }
 
+    # build a lookup from message index to NER entities
+    ner_by_index: dict[int, list[dict]] = {}
+    if ner_entities:
+        for e in ner_entities:
+            if isinstance(e, dict):
+                for s in e.get("senders", []):
+                    # map sender to entities for matching
+                    pass
+                # store by text for later matching
+                ner_by_index.setdefault(e.get("label", ""), []).append(e)
+
     for msg in messages:
         cats: set[str] = set()
         ents = msg.get("entities", [])
         if isinstance(ents, list):
             for e in ents:
                 if isinstance(e, dict):
+                    mapped = category_map.get(e.get("label", ""))
+                    if mapped:
+                        cats.add(mapped)
+
+        # also check global NER entities for this message's sender
+        if ner_entities:
+            sender = msg.get("sender", "")
+            for e in ner_entities:
+                if isinstance(e, dict) and sender in e.get("senders", []):
                     mapped = category_map.get(e.get("label", ""))
                     if mapped:
                         cats.add(mapped)

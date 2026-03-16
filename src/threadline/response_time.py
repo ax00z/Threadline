@@ -4,6 +4,14 @@ from datetime import datetime
 _MAX_GAP = 3600  # ignore gaps over 1 hour (separate conversations)
 
 
+def _median(values: list[float]) -> float:
+    s = sorted(values)
+    n = len(s)
+    if n % 2 == 1:
+        return s[n // 2]
+    return (s[n // 2 - 1] + s[n // 2]) / 2
+
+
 def compute_response_times(messages: list[dict]) -> dict:
     """Compute per-sender average response times and fastest responders."""
     if len(messages) < 2:
@@ -35,7 +43,7 @@ def compute_response_times(messages: list[dict]) -> dict:
     for sender, times in sender_times.items():
         per_sender[sender] = {
             "avg_seconds": round(sum(times) / len(times), 1),
-            "median_seconds": round(sorted(times)[len(times) // 2], 1),
+            "median_seconds": round(_median(times), 1),
             "min_seconds": round(min(times), 1),
             "count": len(times),
         }

@@ -24,14 +24,17 @@
 	}
 
 	let bridges = $derived(bridgeNodes());
+	let collapsed = $state(false);
 </script>
 
 <div class="panel">
-	<div class="panel-header">
+	<button class="panel-header" onclick={() => collapsed = !collapsed}>
+		<span class="toggle-icon">{collapsed ? '▸' : '▾'}</span>
 		<span class="title">Groups Found</span>
 		<span class="meta">{communities.length} detected</span>
-	</div>
+	</button>
 
+	{#if !collapsed}
 	<div class="panel-body">
 		{#each communities as community (community.id)}
 			<div class="community-card">
@@ -76,6 +79,7 @@
 			</div>
 		{/if}
 	</div>
+	{/if}
 </div>
 
 <style>
@@ -88,9 +92,21 @@
 	.panel-header {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		gap: 0.5rem;
+		width: 100%;
 		padding: 0.75rem 1rem;
-		border-bottom: 1px solid var(--border);
+		border: none;
+		background: none;
+		cursor: pointer;
+		color: var(--text-primary);
+	}
+
+	.panel-header:hover { background: var(--bg-hover); }
+
+	.toggle-icon {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		width: 0.8rem;
 	}
 
 	.title {
@@ -103,6 +119,7 @@
 		font-size: 0.78rem;
 		color: var(--text-muted);
 		font-family: var(--font-mono);
+		margin-left: auto;
 	}
 
 	.panel-body {

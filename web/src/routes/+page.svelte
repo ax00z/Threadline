@@ -128,6 +128,19 @@
 					</div>
 				{/if}
 
+				<section class="section-network">
+					<div class="panel-graph">
+						<NetworkGraph graph={data.graph} />
+					</div>
+					<div class="panel-groups">
+						<CommunityPanel communities={data.graph.communities} nodes={data.graph.nodes} />
+					</div>
+				</section>
+
+				<section class="section-timeline">
+					<Timeline messages={data.messages} />
+				</section>
+
 				<section class="section-main">
 					<div class="panel-people">
 						<SenderStats senders={data.stats.senders} />
@@ -137,16 +150,17 @@
 					</div>
 				</section>
 
-				<section class="section-timeline">
-					<Timeline messages={data.messages} />
+				<section class="section-duo">
+					<div class="panel-entities">
+						<EntityPanel ner={data.ner} />
+					</div>
+					<div class="panel-anomalies">
+						<AnomalyPanel anomalies={data.anomalies} />
+					</div>
 				</section>
 
-				<section class="section-entities">
-					<EntityPanel ner={data.ner} />
-				</section>
-
-				<section class="section-anomalies">
-					<AnomalyPanel anomalies={data.anomalies} />
+				<section class="section-relationships">
+					<RelationshipTimeline pairwise={data.pairwise} />
 				</section>
 
 				<section class="section-insights">
@@ -158,19 +172,6 @@
 					</div>
 					<div class="panel-response">
 						<ResponseTimePanel responseTimes={data.response_times} />
-					</div>
-				</section>
-
-				<section class="section-relationships">
-					<RelationshipTimeline pairwise={data.pairwise} />
-				</section>
-
-				<section class="section-network">
-					<div class="panel-graph">
-						<NetworkGraph graph={data.graph} />
-					</div>
-					<div class="panel-groups">
-						<CommunityPanel communities={data.graph.communities} nodes={data.graph.nodes} />
 					</div>
 				</section>
 
@@ -296,7 +297,6 @@
 		display: grid;
 		grid-template-columns: minmax(240px, 320px) 1fr;
 		gap: 1rem;
-		min-height: 380px;
 	}
 
 	.panel-people,
@@ -317,6 +317,18 @@
 		min-width: 0;
 	}
 
+	.section-duo {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+	}
+
+	.panel-entities,
+	.panel-anomalies {
+		min-height: 0;
+		min-width: 0;
+	}
+
 	.section-insights {
 		display: grid;
 		grid-template-columns: 1fr 1fr 1fr;
@@ -331,8 +343,6 @@
 	}
 
 	.section-timeline,
-	.section-entities,
-	.section-anomalies,
 	.section-relationships,
 	.section-advanced {
 		flex-shrink: 0;
@@ -349,10 +359,13 @@
 
 		.section-main {
 			grid-template-columns: 1fr;
-			min-height: auto;
 		}
 
 		.section-network {
+			grid-template-columns: 1fr;
+		}
+
+		.section-duo {
 			grid-template-columns: 1fr;
 		}
 
@@ -378,7 +391,7 @@
 
 	.error-card {
 		background: var(--bg-card);
-		border: 1px solid #f87171;
+		border: 1px solid #e5534b;
 		border-radius: var(--radius);
 		padding: 2rem;
 		text-align: center;
@@ -386,7 +399,7 @@
 
 	.error-title {
 		font-weight: 600;
-		color: #f87171;
+		color: #e5534b;
 		margin-bottom: 0.5rem;
 	}
 

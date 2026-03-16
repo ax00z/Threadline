@@ -2,6 +2,7 @@
 	import type { ResponseTimeData } from '$lib/types';
 
 	let { responseTimes }: { responseTimes: ResponseTimeData } = $props();
+	let collapsed = $state(false);
 
 	let sortedSenders = $derived.by(() => {
 		return Object.entries(responseTimes.per_sender)
@@ -23,22 +24,23 @@
 	}
 
 	function barColor(secs: number): string {
-		if (secs < 30) return '#34d399';
-		if (secs < 120) return '#4f8ff7';
-		if (secs < 600) return '#fbbf24';
-		return '#f87171';
+		if (secs < 30) return '#57ab5a';
+		if (secs < 120) return '#2d7ff9';
+		if (secs < 600) return '#c69026';
+		return '#e5534b';
 	}
 </script>
 
 <div class="panel">
-	<div class="panel-header">
+	<button class="panel-header" onclick={() => collapsed = !collapsed}>
+		<span class="toggle-icon">{collapsed ? '▸' : '▾'}</span>
 		<span class="panel-title">Response Times</span>
 		{#if responseTimes.fastest}
 			<span class="badge fastest">fastest: {responseTimes.fastest}</span>
 		{/if}
-	</div>
+	</button>
 
-	{#if sortedSenders.length > 0}
+	{#if !collapsed && sortedSenders.length > 0}
 		<div class="sender-list">
 			{#each sortedSenders as [sender, stats]}
 				<div class="sender-row">
@@ -68,7 +70,7 @@
 				{/each}
 			</div>
 		{/if}
-	{:else}
+	{:else if !collapsed}
 		<div class="empty">Not enough messages to compute response times</div>
 	{/if}
 </div>
@@ -84,8 +86,20 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+		width: 100%;
 		padding: 0.75rem 1rem;
-		border-bottom: 1px solid var(--border);
+		border: none;
+		background: none;
+		cursor: pointer;
+		color: var(--text-primary);
+	}
+
+	.panel-header:hover { background: var(--bg-hover); }
+
+	.toggle-icon {
+		font-size: 0.7rem;
+		color: var(--text-muted);
+		width: 0.8rem;
 	}
 
 	.panel-title {
@@ -105,7 +119,7 @@
 	}
 
 	.badge.fastest {
-		color: #34d399;
+		color: #57ab5a;
 	}
 
 	.sender-list {
