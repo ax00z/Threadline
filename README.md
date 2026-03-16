@@ -128,3 +128,5 @@ python scripts/gen_test_data.py -n 5000 -p 4 --format telegram -o data/test.json
 - [x] Phase 4 — tactical UI with cross-component selection, graph view, timeline brush
 - [x] Phase 5 — SHA-256 hash chain of custody (Python + Rust verifier)
 - [x] Phase 6 — anomaly detection, evidence export, relationship timeline
+
+- [] Phase 7 — bundling, final review, release
