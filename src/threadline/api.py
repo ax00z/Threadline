@@ -183,8 +183,21 @@ async def upload(file: UploadFile = File(...)):
         heatmap = build_heatmap(messages)
         response_times = compute_response_times(messages)
 
+        # Strip messages to only fields the frontend needs
+        slim_messages = [
+            {
+                "timestamp": m["timestamp"],
+                "sender": m["sender"],
+                "body": m["body"],
+                "line_number": m.get("line_number", 0),
+                "chain_index": m.get("chain_index"),
+                "source_format": m.get("source_format", ""),
+            }
+            for m in messages
+        ]
+
         return {
-            "messages": messages,
+            "messages": slim_messages,
             "stats": stats,
             "graph": graph,
             "ner": ner,

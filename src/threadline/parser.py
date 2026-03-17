@@ -18,6 +18,11 @@ _DASH = re.compile(
     r"^(\d{1,2}/\d{1,2}/\d{2,4}),\s*(\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AP]M)?)\s*-\s*([^:]+):\s*(.+)$"
 )
 
+# WhatsApp compact (no delimiters):  [010125, 080000] Name: body  (MMDDYY, HHMMSS)
+_COMPACT = re.compile(
+    r"^\[(\d{6}),\s*(\d{6})\]\s*([^:]+):\s*(.+)$"
+)
+
 _SYSTEM_TOKENS = (
     "messages and calls are end-to-end encrypted",
     "created group",
@@ -68,6 +73,17 @@ def _parse_whatsapp_ts(date_str: str, time_str: str) -> str:
     return f"{year:04d}-{month:02d}-{day:02d}T{hour:02d}:{minute:02d}:{second:02d}"
 
 
+def _parse_compact_ts(date_str: str, time_str: str) -> str:
+    """Parse compact MMDDYY, HHMMSS format (no delimiters)."""
+    month = int(date_str[0:2])
+    day = int(date_str[2:4])
+    year = int(date_str[4:6]) + 2000
+    hour = int(time_str[0:2])
+    minute = int(time_str[2:4])
+    second = int(time_str[4:6])
+    return f"{year:04d}-{month:02d}-{day:02d}T{hour:02d}:{minute:02d}:{second:02d}"
+
+
 def _parse_whatsapp(path: str) -> Generator[Message, None, None]:
     pending_ts = pending_sender = pending_body = None
     line_num = 0
@@ -78,7 +94,8 @@ def _parse_whatsapp(path: str) -> Generator[Message, None, None]:
             line = raw.rstrip("\n").rstrip("\r")
 
             m = _BRACKET.match(line) or _DASH.match(line)
-            if m:
+            mc = _COMPACT.match(line) if not m else None
+            if m or mc:
                 if pending_ts and not _is_system(pending_body or ""):
                     yield Message(
                         timestamp=pending_ts,
@@ -87,9 +104,13 @@ def _parse_whatsapp(path: str) -> Generator[Message, None, None]:
                         line_number=line_num - 1,
                         source_format="whatsapp",
                     )
-                pending_ts = _parse_whatsapp_ts(m.group(1), m.group(2))
-                pending_sender = m.group(3)
-                pending_body = m.group(4)
+                match = m or mc
+                if mc:
+                    pending_ts = _parse_compact_ts(match.group(1), match.group(2))
+                else:
+                    pending_ts = _parse_whatsapp_ts(match.group(1), match.group(2))
+                pending_sender = match.group(3)
+                pending_body = match.group(4)
             elif pending_ts and line:
                 pending_body = (pending_body or "") + "\n" + line
 
@@ -238,7 +259,7 @@ def _parse_csv(path: str) -> Generator[Message, None, None]:
         reader = csv.DictReader(fh, dialect=dialect)
 
         _TS_KEYS = ("timestamp", "date", "datetime", "time", "sent", "date_sent", "created")
-        _FROM_KEYS = ("sender", "from", "from_name", "name", "author", "contact", "user")
+        _FROM_KEYS = ("sender", "from", "from_name", "name", "author", "contact", "user", "party", "source", "originator")
         _BODY_KEYS = ("body", "message", "text", "content", "msg")
 
         for i, row in enumerate(reader):

@@ -183,16 +183,15 @@ def detect_keyword_clusters(
         "DATE": "time",
     }
 
-    # build a lookup from message index to NER entities
-    ner_by_index: dict[int, list[dict]] = {}
+    # Pre-build sender → category set from NER (O(entities) once, not O(msgs × entities))
+    sender_cats: dict[str, set[str]] = {}
     if ner_entities:
         for e in ner_entities:
             if isinstance(e, dict):
-                for s in e.get("senders", []):
-                    # map sender to entities for matching
-                    pass
-                # store by text for later matching
-                ner_by_index.setdefault(e.get("label", ""), []).append(e)
+                mapped = category_map.get(e.get("label", ""))
+                if mapped:
+                    for s in e.get("senders", []):
+                        sender_cats.setdefault(s, set()).add(mapped)
 
     for msg in messages:
         cats: set[str] = set()
@@ -204,16 +203,12 @@ def detect_keyword_clusters(
                     if mapped:
                         cats.add(mapped)
 
-        # also check global NER entities for this message's sender
-        if ner_entities:
-            sender = msg.get("sender", "")
-            for e in ner_entities:
-                if isinstance(e, dict) and sender in e.get("senders", []):
-                    mapped = category_map.get(e.get("label", ""))
-                    if mapped:
-                        cats.add(mapped)
+        # merge pre-computed sender categories (O(1) lookup)
+        s_cats = sender_cats.get(msg.get("sender", ""))
+        if s_cats:
+            cats |= s_cats
 
-        # also check body for time keywords
+        # check body for time keywords
         body = msg.get("body", "").lower()
         time_words = ("tonight", "tomorrow", "midnight", "dawn", "right now", "asap")
         if any(w in body for w in time_words):

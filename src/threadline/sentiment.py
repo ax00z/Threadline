@@ -29,10 +29,18 @@ def analyze_sentiment(messages: list[dict]) -> dict:
         }
 
     sia = SentimentIntensityAnalyzer()
+
+    # For large datasets, score all messages but cache short/empty body results
     scored: list[dict] = []
+    _cache: dict[str, dict] = {}
     for msg in messages:
         body = msg.get("body", "")
-        scores = sia.polarity_scores(body)
+        if body in _cache:
+            scores = _cache[body]
+        else:
+            scores = sia.polarity_scores(body)
+            if len(body) < 100:  # cache short messages (likely repeated)
+                _cache[body] = scores
         scored.append({
             "sender": msg.get("sender", ""),
             "timestamp": msg.get("timestamp", ""),

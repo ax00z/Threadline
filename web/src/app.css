@@ -1,21 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 :root {
-	--bg-primary: #080b12;
-	--bg-secondary: #0d1117;
-	--bg-card: #131921;
-	--bg-hover: #1a2332;
-	--accent: #2d7ff9;
-	--accent-muted: #2d7ff910;
-	--accent-glow: #2d7ff930;
-	--border: #1b2535;
-	--text-primary: #cdd9e5;
-	--text-secondary: #768390;
-	--text-muted: #484f58;
-	--danger: #e5534b;
-	--success: #57ab5a;
-	--warning: #c69026;
-	--radius: 6px;
-	--radius-sm: 4px;
-	--font-mono: 'JetBrains Mono', 'Consolas', 'SF Mono', 'Fira Code', monospace;
+	--bg-primary: #060a10;
+	--bg-secondary: #0b1018;
+	--bg-card: #0f1620;
+	--bg-hover: #151d2a;
+	--bg-inset: #0a0f16;
+	--accent: #3b82f6;
+	--accent-dim: #2563eb;
+	--accent-muted: #3b82f60a;
+	--accent-glow: #3b82f618;
+	--border: #1a2232;
+	--border-subtle: #141c28;
+	--text-primary: #c8d1dc;
+	--text-secondary: #6b7a8d;
+	--text-muted: #3d4a5c;
+	--text-label: #4d5d72;
+	--danger: #dc4a3f;
+	--success: #3daa5c;
+	--warning: #d4920a;
+	--radius: 3px;
+	--radius-sm: 2px;
+	--font-mono: 'JetBrains Mono', 'Consolas', 'SF Mono', monospace;
+	--font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 *, *::before, *::after {
@@ -28,19 +35,26 @@ html, body {
 	height: 100%;
 	background: var(--bg-primary);
 	color: var(--text-primary);
-	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-	font-size: 13.5px;
-	line-height: 1.5;
+	font-family: var(--font-sans);
+	font-size: 13px;
+	line-height: 1.45;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
 
 ::-webkit-scrollbar {
-	width: 5px;
-	height: 5px;
+	width: 4px;
+	height: 4px;
 }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-::selection { background: var(--accent-glow); }
+::selection { background: var(--accent-glow); color: #fff; }
+
+button { font-family: inherit; }
+
+input, textarea {
+	font-family: inherit;
+	font-size: inherit;
+}

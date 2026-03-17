@@ -75,21 +75,18 @@ def test_upload_returns_ner():
     assert data["ner"]["total_found"] >= 1
 
 
-def test_upload_messages_have_chain_fields():
+def test_upload_messages_have_chain_index():
     r = client.post("/api/upload", files={"file": ("chat.txt", WA_SAMPLE, "text/plain")})
     data = r.json()
     for msg in data["messages"]:
-        assert "chain_hash" in msg
-        assert "previous_hash" in msg
         assert "chain_index" in msg
 
 
-def test_upload_chain_links():
+def test_upload_chain_valid():
     r = client.post("/api/upload", files={"file": ("chat.txt", WA_SAMPLE, "text/plain")})
-    msgs = r.json()["messages"]
-    assert msgs[0]["previous_hash"] == "0" * 64
-    assert msgs[1]["previous_hash"] == msgs[0]["chain_hash"]
-    assert msgs[2]["previous_hash"] == msgs[1]["chain_hash"]
+    chain = r.json()["chain"]
+    assert chain["valid"] is True
+    assert chain["checked"] > 0
 
 
 def test_upload_rejects_unsupported_extension():

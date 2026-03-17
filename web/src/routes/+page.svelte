@@ -294,51 +294,59 @@
 	}
 
 	.section-main {
-		display: grid;
-		grid-template-columns: minmax(240px, 320px) 1fr;
+		display: flex;
+		flex-wrap: wrap;
 		gap: 1rem;
 	}
 
-	.panel-people,
+	.panel-people {
+		flex: 0 0 280px;
+		min-width: 0;
+	}
+
 	.panel-messages {
-		min-height: 0;
+		flex: 1 1 400px;
 		min-width: 0;
 	}
 
 	.section-network {
-		display: grid;
-		grid-template-columns: 1fr minmax(240px, 320px);
+		display: flex;
+		flex-wrap: wrap;
 		gap: 1rem;
 	}
 
-	.panel-graph,
+	.panel-graph {
+		flex: 1 1 500px;
+		min-width: 0;
+	}
+
 	.panel-groups {
-		min-height: 0;
+		flex: 0 0 280px;
 		min-width: 0;
 	}
 
 	.section-duo {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
+		display: flex;
+		flex-wrap: wrap;
 		gap: 1rem;
 	}
 
 	.panel-entities,
 	.panel-anomalies {
-		min-height: 0;
+		flex: 1 1 300px;
 		min-width: 0;
 	}
 
 	.section-insights {
-		display: grid;
-		grid-template-columns: 1fr 1fr 1fr;
+		display: flex;
+		flex-wrap: wrap;
 		gap: 1rem;
 	}
 
 	.panel-sentiment,
 	.panel-heatmap,
 	.panel-response {
-		min-height: 0;
+		flex: 1 1 250px;
 		min-width: 0;
 	}
 
@@ -357,20 +365,15 @@
 			padding: 0.75rem;
 		}
 
-		.section-main {
-			grid-template-columns: 1fr;
-		}
-
-		.section-network {
-			grid-template-columns: 1fr;
-		}
-
-		.section-duo {
-			grid-template-columns: 1fr;
-		}
-
-		.section-insights {
-			grid-template-columns: 1fr;
+		.panel-people,
+		.panel-graph,
+		.panel-groups,
+		.panel-entities,
+		.panel-anomalies,
+		.panel-sentiment,
+		.panel-heatmap,
+		.panel-response {
+			flex-basis: 100%;
 		}
 	}
 

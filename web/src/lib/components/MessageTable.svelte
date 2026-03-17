@@ -12,6 +12,8 @@
 
 	let search = $state('');
 	let collapsed = $state(false);
+	const PAGE_SIZE = 200;
+	let page = $state(0);
 
 	let filtered = $derived.by(() => {
 		let msgs = messages;
@@ -45,8 +47,12 @@
 			);
 		}
 
+		page = 0; // reset page when filters change
 		return msgs;
 	});
+
+	let paged = $derived(filtered.slice(0, (page + 1) * PAGE_SIZE));
+	let hasMore = $derived(paged.length < filtered.length);
 
 	// label for the active filter
 	let filterLabel = $derived.by(() => {
@@ -88,7 +94,7 @@
 		</div>
 
 		<div class="scroll-area">
-			{#each filtered as msg (msg.line_number)}
+			{#each paged as msg (msg.line_number)}
 				<div class="row" style="border-left-color: {senderColors.get(msg.sender) || '#555'}">
 					<span class="ts">{fmtTime(msg.timestamp)}</span>
 					<button
@@ -101,6 +107,11 @@
 					<span class="body">{msg.body}</span>
 				</div>
 			{/each}
+			{#if hasMore}
+				<button class="load-more" onclick={() => page++}>
+					Load more ({filtered.length - paged.length} remaining)
+				</button>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -274,5 +285,22 @@
 		word-break: break-word;
 		flex: 1;
 		min-width: 0;
+	}
+
+	.load-more {
+		display: block;
+		width: 100%;
+		padding: 0.6rem;
+		background: var(--bg-secondary);
+		border: none;
+		border-top: 1px solid var(--border);
+		color: var(--accent);
+		font-size: 0.8rem;
+		cursor: pointer;
+		text-align: center;
+	}
+
+	.load-more:hover {
+		background: var(--bg-hover);
 	}
 </style>
