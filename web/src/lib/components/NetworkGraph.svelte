@@ -251,7 +251,7 @@
 		<span class="toggle-icon">{collapsed ? '▸' : '▾'}</span>
 		<span class="title">Network Analysis</span>
 		<span class="hint">drag nodes to rearrange</span>
-		<span class="meta">{graph.nodes.length} nodes &middot; {graph.edges.length} edges</span>
+		<span class="meta">{graph.nodes.length} people &middot; {graph.edges.length} connections</span>
 	</button>
 
 	{#if !collapsed}
@@ -267,7 +267,7 @@
 			<div class="tooltip-name">{hovered.id}</div>
 			<div class="tooltip-community" style="color: {communityColor(hovered.community)}">
 				<span class="community-dot" style="background: {communityColor(hovered.community)}"></span>
-				Cluster {hovered.community}
+				Group {hovered.community}
 			</div>
 			<div class="metrics">
 				<div class="metric-row"><span class="metric-label">Messages</span><span class="metric-val">{hovered.message_count}</span></div>

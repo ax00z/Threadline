@@ -13,7 +13,7 @@
 		URL:          { icon: '🔗', color: '#986ee2', name: 'Link' },
 		MONEY:        { icon: '💰', color: '#c69026', name: 'Money' },
 		CRYPTO_WALLET:{ icon: '🪙', color: '#d49e6a', name: 'Crypto' },
-		COORDINATES:  { icon: '🌐', color: '#56b6c2', name: 'Coords' },
+		COORDINATES:  { icon: '🌐', color: '#56b6c2', name: 'Coordinates' },
 		DATE:         { icon: '📅', color: '#2d7ff9', name: 'Date' },
 	};
 

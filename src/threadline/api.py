@@ -34,7 +34,7 @@ app.add_middleware(
 _WEB_BUILD = Path(__file__).resolve().parent.parent.parent / "web" / "build"
 
 _ACCEPTED = {".txt", ".json", ".csv"}
-_REPLY_WINDOW_SECS = 300
+_REPLY_WINDOW_SECS = 3600  # 1 hour window for consecutive-message edges
 
 _store = MessageStore()
 
@@ -46,23 +46,41 @@ def _build_graph(messages: list[dict]) -> dict:
     for sender, count in sender_counts.items():
         G.add_node(sender, message_count=count)
 
-    for i in range(len(messages) - 1):
-        a = messages[i]["sender"]
-        b = messages[i + 1]["sender"]
+    def _add_edge(a: str, b: str):
         if a == b:
-            continue
-        try:
-            ta = datetime.fromisoformat(messages[i]["timestamp"])
-            tb = datetime.fromisoformat(messages[i + 1]["timestamp"])
-            if abs((tb - ta).total_seconds()) > _REPLY_WINDOW_SECS:
-                continue
-        except ValueError:
-            pass
-
+            return
         if G.has_edge(a, b):
             G[a][b]["weight"] += 1
         else:
             G.add_edge(a, b, weight=1)
+
+    # Build message_id → sender lookup for reply-based edges
+    id_to_sender: dict = {}
+    for m in messages:
+        mid = m.get("message_id")
+        if mid is not None:
+            id_to_sender[mid] = m["sender"]
+
+    for i, msg in enumerate(messages):
+        # Reply-based edges (Telegram): direct connection between replier and replied-to
+        reply_to = msg.get("reply_to")
+        if reply_to is not None and reply_to in id_to_sender:
+            _add_edge(msg["sender"], id_to_sender[reply_to])
+
+        # Consecutive-message edges (all formats): within time window
+        if i < len(messages) - 1:
+            a = msg["sender"]
+            b = messages[i + 1]["sender"]
+            if a == b:
+                continue
+            try:
+                ta = datetime.fromisoformat(msg["timestamp"])
+                tb = datetime.fromisoformat(messages[i + 1]["timestamp"])
+                if abs((tb - ta).total_seconds()) > _REPLY_WINDOW_SECS:
+                    continue
+            except ValueError:
+                pass
+            _add_edge(a, b)
 
     if len(G.nodes) == 0:
         return {"nodes": [], "edges": [], "communities": [], "sender_counts": {}}

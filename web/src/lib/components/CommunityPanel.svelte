@@ -73,7 +73,7 @@
 					<button class="bridge-row" onclick={() => selectPerson(node.id)}>
 						<span class="dot" style="background: {communityColor(node.community)}"></span>
 						<span class="bridge-name">{node.id}</span>
-						<span class="bridge-value">{(node.betweenness_centrality * 100).toFixed(1)}% bridge</span>
+						<span class="bridge-value">{(node.betweenness_centrality * 100).toFixed(1)}% bridge score</span>
 					</button>
 				{/each}
 			</div>

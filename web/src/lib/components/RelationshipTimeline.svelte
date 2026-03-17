@@ -85,7 +85,7 @@
 					<div class="pair-info">
 						<span class="pair-label">{pair.pair[0]} ↔ {pair.pair[1]}</span>
 						<span class="pair-meta">
-							{pair.message_count} msgs · {pair.duration_days}d · {fmtDate(pair.first_contact)} – {fmtDate(pair.last_contact)}
+							{pair.message_count} messages · {pair.duration_days} days · {fmtDate(pair.first_contact)} – {fmtDate(pair.last_contact)}
 						</span>
 					</div>
 					{#if spark.heights.length > 0}

@@ -49,17 +49,17 @@
 			<div class="overall-label">{sentimentLabel(sentiment.overall.compound)} overall tone</div>
 			<div class="overall-bars">
 				<div class="bar-row">
-					<span class="bar-label">Pos</span>
+					<span class="bar-label">Positive (pos)</span>
 					<div class="bar-track"><div class="bar-fill pos" style="width: {sentiment.overall.positive * 100}%"></div></div>
 					<span class="bar-val">{(sentiment.overall.positive * 100).toFixed(1)}%</span>
 				</div>
 				<div class="bar-row">
-					<span class="bar-label">Neg</span>
+					<span class="bar-label">Negative (neg)</span>
 					<div class="bar-track"><div class="bar-fill neg" style="width: {sentiment.overall.negative * 100}%"></div></div>
 					<span class="bar-val">{(sentiment.overall.negative * 100).toFixed(1)}%</span>
 				</div>
 				<div class="bar-row">
-					<span class="bar-label">Neu</span>
+					<span class="bar-label">Neutral (neu)</span>
 					<div class="bar-track"><div class="bar-fill neu" style="width: {sentiment.overall.neutral * 100}%"></div></div>
 					<span class="bar-val">{(sentiment.overall.neutral * 100).toFixed(1)}%</span>
 				</div>
@@ -190,7 +190,7 @@
 	.bar-label {
 		font-size: 0.68rem;
 		color: var(--text-muted);
-		width: 28px;
+		width: 90px;
 		text-align: right;
 		font-family: var(--font-mono);
 	}

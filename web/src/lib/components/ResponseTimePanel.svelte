@@ -52,7 +52,7 @@
 						></div>
 					</div>
 					<span class="stat avg">{fmtDuration(stats.avg_seconds)}</span>
-					<span class="stat med">med {fmtDuration(stats.median_seconds)}</span>
+					<span class="stat med">median {fmtDuration(stats.median_seconds)}</span>
 					<span class="stat count">{stats.count}×</span>
 				</div>
 			{/each}
@@ -172,7 +172,7 @@
 	}
 
 	.stat.med {
-		width: 52px;
+		width: 68px;
 	}
 
 	.stat.count {

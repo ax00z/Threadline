@@ -11,6 +11,8 @@ class Message:
     line_number: int
     source_format: str = ""
     entities: list = field(default_factory=list)
+    reply_to: int | None = None
+    message_id: int | None = None
 
     def to_dict(self) -> dict:
         return asdict(self)
