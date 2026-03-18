@@ -61,7 +61,7 @@
 	}
 
 	onMount(() => {
-		if (!graph.nodes.length) return;
+		if (!graph.nodes.length || !container || container.clientWidth === 0) return;
 
 		g = new Graph({ type: 'undirected', multi: false });
 
@@ -123,6 +123,7 @@
 		renderer = new Sigma(g!, container, {
 			renderEdgeLabels: false,
 			enableEdgeEvents: true,
+			allowInvalidContainer: true,
 			labelFont: '"Inter", sans-serif',
 			labelSize: 11,
 			labelWeight: '500',

@@ -8,11 +8,9 @@
 	let collapsed = $state(false);
 
 	let sorted = $derived.by(() => {
-		const copy = [...pairwise];
-		if (sortBy === 'messages') copy.sort((a, b) => b.message_count - a.message_count);
-		else if (sortBy === 'recent') copy.sort((a, b) => b.last_contact.localeCompare(a.last_contact));
-		else copy.sort((a, b) => b.duration_days - a.duration_days);
-		return copy;
+		if (sortBy === 'messages') return pairwise.toSorted((a, b) => b.message_count - a.message_count);
+		if (sortBy === 'recent') return pairwise.toSorted((a, b) => b.last_contact.localeCompare(a.last_contact));
+		return pairwise.toSorted((a, b) => b.duration_days - a.duration_days);
 	});
 
 	function isActive(p: PairwiseStats): boolean {

@@ -117,6 +117,50 @@ export interface ResponseTimeData {
 	slowest: string | null;
 }
 
+export interface IntelKeyword {
+	keyword: string;
+	score: number;
+	count: number;
+	senders: string[];
+}
+
+export interface IntelTopic {
+	id: number;
+	size: number;
+	top_terms: string[];
+	top_senders: string[];
+	sample: string;
+}
+
+export interface IntelThreatSender {
+	sender: string;
+	raw_score: number;
+	flagged_messages: number;
+	threat_density: number;
+}
+
+export interface IntelFlagged {
+	index: number;
+	sender: string;
+	timestamp: string;
+	score: number;
+	categories: string[];
+	body: string;
+}
+
+export interface IntelResult {
+	keywords: IntelKeyword[];
+	topics: { available: boolean; topics: IntelTopic[] };
+	threats: {
+		level: 'none' | 'low' | 'medium' | 'high';
+		flagged_count: number;
+		total_messages: number;
+		categories: Record<string, number>;
+		per_sender: IntelThreatSender[];
+		flagged: IntelFlagged[];
+	};
+}
+
 export interface UploadResponse {
 	messages: Message[];
 	stats: ParseStats;
@@ -128,6 +172,7 @@ export interface UploadResponse {
 	sentiment: SentimentResult;
 	heatmap: HeatmapData;
 	response_times: ResponseTimeData;
+	intel: IntelResult;
 }
 
 export type SelectionMode =

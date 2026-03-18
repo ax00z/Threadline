@@ -151,15 +151,25 @@ def spacy_available() -> bool:
     return _nlp is not None
 
 
-def extract_from_messages(messages: list[dict]) -> dict:
+def extract_from_messages(messages: list[dict], *, _body_cache: dict | None = None) -> dict:
     all_entities: list[dict] = []
     label_counts: dict[str, int] = {}
     sender_entities: dict[str, dict[str, set[str]]] = {}
+    cache = _body_cache if _body_cache is not None else {}
 
     for msg in messages:
         body = msg.get("body", "")
+        if not body:
+            continue
         sender = msg.get("sender", "Unknown")
-        ents = extract_entities(body)
+
+        # Cache regex results for identical short bodies (common in chat)
+        if len(body) < 120 and body in cache:
+            ents = cache[body]
+        else:
+            ents = extract_entities(body)
+            if len(body) < 120:
+                cache[body] = ents
 
         if not ents:
             continue

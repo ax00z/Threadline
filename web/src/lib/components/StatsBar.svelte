@@ -27,27 +27,27 @@
 <div class="stats-bar">
 	<div class="stat">
 		<span class="value">{stats.total_messages.toLocaleString()}</span>
-		<span class="label">Total Messages</span>
+		<span class="label">messages</span>
 	</div>
 	<div class="stat">
 		<span class="value">{stats.unique_senders}</span>
-		<span class="label">People</span>
+		<span class="label">people</span>
 	</div>
 	<div class="stat">
 		<span class="value">{fmtDate(stats.first_message)} &ndash; {fmtDate(stats.last_message)}</span>
-		<span class="label">Time Span ({days} {days === 1 ? 'day' : 'days'})</span>
+		<span class="label">{days} {days === 1 ? 'day' : 'days'}</span>
 	</div>
 	<div class="stat">
-		<span class="value">{perDay.toLocaleString()}</span>
-		<span class="label">Messages per Day</span>
+		<span class="value">{perDay.toLocaleString()}/day</span>
+		<span class="label">avg rate</span>
 	</div>
-	<div class="stat chain-stat">
+	<div class="stat">
 		{#if chain.valid}
-			<span class="value chain-ok">Verified</span>
-			<span class="label">Chain Integrity ({chain.checked})</span>
+			<span class="value chain-ok">INTACT</span>
+			<span class="label">chain ({chain.checked})</span>
 		{:else}
-			<span class="value chain-fail">Broken @ #{chain.broken_at}</span>
-			<span class="label">Chain Integrity</span>
+			<span class="value chain-fail">BROKEN @ #{chain.broken_at}</span>
+			<span class="label">chain integrity</span>
 		{/if}
 	</div>
 </div>
@@ -57,38 +57,38 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 1px;
-		background: var(--border);
-		border-radius: var(--radius);
-		overflow: hidden;
+		background: var(--border-subtle);
 	}
 
 	.stat {
-		flex: 1 1 140px;
+		flex: 1 1 120px;
 		background: var(--bg-card);
-		padding: 1rem 1.2rem;
+		padding: 0.6rem 0.8rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.25rem;
+		gap: 0.15rem;
 	}
 
 	.value {
-		font-size: 1.1rem;
+		font-size: 0.9rem;
 		font-weight: 600;
+		font-family: var(--font-mono);
 		color: var(--text-primary);
 	}
 
 	.label {
-		font-size: 0.75rem;
-		color: var(--text-secondary);
+		font-size: 0.65rem;
+		color: var(--text-muted);
 		text-transform: uppercase;
-		letter-spacing: 0.04em;
+		letter-spacing: 0.1em;
+		font-family: var(--font-mono);
 	}
 
 	.chain-ok {
-		color: #57ab5a;
+		color: var(--success);
 	}
 
 	.chain-fail {
-		color: #e5534b;
+		color: var(--danger);
 	}
 </style>

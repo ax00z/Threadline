@@ -6,7 +6,7 @@
 
 	let sortedSenders = $derived.by(() => {
 		return Object.entries(sentiment.per_sender)
-			.sort((a, b) => a[1].compound - b[1].compound);
+			.toSorted((a, b) => a[1].compound - b[1].compound);
 	});
 
 	function barWidth(val: number): string {

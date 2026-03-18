@@ -8,14 +8,14 @@
 	function topByPagerank(communityId: number, limit = 3): GraphNode[] {
 		return nodes
 			.filter((n) => n.community === communityId)
-			.sort((a, b) => b.pagerank - a.pagerank)
+			.toSorted((a, b) => b.pagerank - a.pagerank)
 			.slice(0, limit);
 	}
 
 	function bridgeNodes(): GraphNode[] {
 		return nodes
 			.filter((n) => n.betweenness_centrality > 0.05)
-			.sort((a, b) => b.betweenness_centrality - a.betweenness_centrality)
+			.toSorted((a, b) => b.betweenness_centrality - a.betweenness_centrality)
 			.slice(0, 5);
 	}
 

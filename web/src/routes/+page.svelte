@@ -20,6 +20,7 @@
 	import HeatmapPanel from '$lib/components/HeatmapPanel.svelte';
 	import ResponseTimePanel from '$lib/components/ResponseTimePanel.svelte';
 	import QueryConsole from '$lib/components/QueryConsole.svelte';
+	import IntelPanel from '$lib/components/IntelPanel.svelte';
 
 	type View = 'idle' | 'uploading' | 'parsed' | 'error';
 
@@ -163,6 +164,10 @@
 					<RelationshipTimeline pairwise={data.pairwise} />
 				</section>
 
+				<section class="section-intel">
+					<IntelPanel intel={data.intel} />
+				</section>
+
 				<section class="section-insights">
 					<div class="panel-sentiment">
 						<SentimentPanel sentiment={data.sentiment} />
@@ -194,8 +199,9 @@
 	header {
 		display: flex;
 		align-items: center;
-		gap: 1rem;
-		padding: 0.75rem 1.5rem;
+		gap: 0.75rem;
+		padding: 0 1rem;
+		height: 36px;
 		border-bottom: 1px solid var(--border);
 		background: var(--bg-secondary);
 		flex-shrink: 0;
@@ -203,55 +209,61 @@
 
 	.logo {
 		font-weight: 700;
-		font-size: 0.95rem;
-		letter-spacing: 0.1em;
-		color: var(--accent);
+		font-size: 0.78rem;
+		letter-spacing: 0.18em;
+		color: var(--text-label);
+		font-family: var(--font-mono);
 	}
 
 	.file-label {
-		color: var(--text-secondary);
-		font-size: 0.85rem;
+		color: var(--text-muted);
+		font-size: 0.75rem;
 		font-family: var(--font-mono);
 		flex: 1;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+		padding-left: 0.75rem;
+		border-left: 1px solid var(--border);
 	}
 
 	.btn-new {
-		background: var(--bg-card);
+		background: transparent;
 		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
-		color: var(--text-secondary);
-		padding: 0.4rem 0.9rem;
-		font-size: 0.82rem;
+		color: var(--text-muted);
+		padding: 0.2rem 0.6rem;
+		font-size: 0.7rem;
+		font-family: var(--font-mono);
 		cursor: pointer;
 		white-space: nowrap;
-		transition: all 0.15s;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		transition: all 0.1s;
 	}
 
 	.btn-new:hover {
 		border-color: var(--accent);
-		color: var(--text-primary);
+		color: var(--accent);
 	}
 
 	main {
 		flex: 1;
 		overflow-y: auto;
-		padding: 1rem;
+		padding: 0.75rem;
 		min-height: 0;
 	}
 
 	.center-wrap {
-		max-width: 640px;
-		margin: 4rem auto;
+		max-width: 560px;
+		margin: 6rem auto;
 	}
 
 	.dashboard {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
-		max-width: 1600px;
+		gap: 0.75rem;
+		max-width: 1800px;
 		margin: 0 auto;
 		padding-bottom: 2rem;
 	}
@@ -260,11 +272,10 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 0.4rem 1rem;
+		padding: 0.3rem 0.75rem;
 		background: var(--bg-card);
-		border: 1px solid var(--accent);
-		border-radius: var(--radius-sm);
-		font-size: 0.78rem;
+		border-left: 2px solid var(--accent);
+		font-size: 0.72rem;
 	}
 
 	.selection-text {
@@ -278,11 +289,13 @@
 	.selection-clear {
 		background: none;
 		border: none;
-		color: var(--accent);
-		font-size: 0.75rem;
+		color: var(--text-muted);
+		font-size: 0.7rem;
+		font-family: var(--font-mono);
 		cursor: pointer;
-		padding: 0.15rem 0.4rem;
+		padding: 0.1rem 0.3rem;
 		flex-shrink: 0;
+		text-transform: uppercase;
 	}
 
 	.selection-clear:hover {
@@ -296,11 +309,11 @@
 	.section-main {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 1rem;
+		gap: 0.75rem;
 	}
 
 	.panel-people {
-		flex: 0 0 280px;
+		flex: 0 0 260px;
 		min-width: 0;
 	}
 
@@ -312,7 +325,7 @@
 	.section-network {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 1rem;
+		gap: 0.75rem;
 	}
 
 	.panel-graph {
@@ -321,14 +334,14 @@
 	}
 
 	.panel-groups {
-		flex: 0 0 280px;
+		flex: 0 0 260px;
 		min-width: 0;
 	}
 
 	.section-duo {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 1rem;
+		gap: 0.75rem;
 	}
 
 	.panel-entities,
@@ -340,7 +353,7 @@
 	.section-insights {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 1rem;
+		gap: 0.75rem;
 	}
 
 	.panel-sentiment,
@@ -352,17 +365,18 @@
 
 	.section-timeline,
 	.section-relationships,
+	.section-intel,
 	.section-advanced {
 		flex-shrink: 0;
 	}
 
 	.section-stats :global(.toolbar) {
-		margin-top: 0.5rem;
+		margin-top: 0.4rem;
 	}
 
 	@media (max-width: 900px) {
 		main {
-			padding: 0.75rem;
+			padding: 0.5rem;
 		}
 
 		.panel-people,
@@ -379,46 +393,58 @@
 
 	@media (max-width: 600px) {
 		header {
-			padding: 0.5rem 0.75rem;
-			gap: 0.5rem;
+			padding: 0 0.5rem;
 		}
 
 		main {
-			padding: 0.5rem;
+			padding: 0.4rem;
 		}
 
 		.dashboard {
-			gap: 0.75rem;
+			gap: 0.5rem;
 		}
 	}
 
 	.error-card {
 		background: var(--bg-card);
-		border: 1px solid #e5534b;
-		border-radius: var(--radius);
-		padding: 2rem;
+		border: 1px solid var(--border);
+		border-left: 2px solid var(--danger);
+		padding: 1.5rem;
 		text-align: center;
 	}
 
 	.error-title {
 		font-weight: 600;
-		color: #e5534b;
-		margin-bottom: 0.5rem;
+		font-size: 0.85rem;
+		color: var(--danger);
+		margin-bottom: 0.4rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
 	}
 
 	.error-detail {
 		color: var(--text-secondary);
-		font-size: 0.85rem;
-		margin-bottom: 1.5rem;
+		font-size: 0.8rem;
+		font-family: var(--font-mono);
+		margin-bottom: 1.2rem;
 	}
 
 	.error-card button {
-		background: var(--accent);
-		border: none;
+		background: transparent;
+		border: 1px solid var(--border);
 		border-radius: var(--radius-sm);
-		color: #fff;
-		padding: 0.5rem 1.2rem;
+		color: var(--text-secondary);
+		padding: 0.35rem 1rem;
 		cursor: pointer;
-		font-size: 0.85rem;
+		font-size: 0.75rem;
+		font-family: var(--font-mono);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		transition: all 0.1s;
+	}
+
+	.error-card button:hover {
+		border-color: var(--accent);
+		color: var(--accent);
 	}
 </style>

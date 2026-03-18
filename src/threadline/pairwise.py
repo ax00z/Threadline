@@ -10,19 +10,24 @@ def compute_pairwise(
 ) -> list[dict]:
     pairs: dict[tuple[str, str], dict] = {}
 
+    # Pre-parse all timestamps once
+    parsed_ts: list[datetime | None] = []
+    for m in messages:
+        try:
+            parsed_ts.append(datetime.fromisoformat(m["timestamp"]))
+        except (ValueError, TypeError, KeyError):
+            parsed_ts.append(None)
+
     for i in range(len(messages) - 1):
         a = messages[i]["sender"]
         b = messages[i + 1]["sender"]
         if a == b:
             continue
 
-        try:
-            ta = datetime.fromisoformat(messages[i]["timestamp"])
-            tb = datetime.fromisoformat(messages[i + 1]["timestamp"])
+        ta, tb = parsed_ts[i], parsed_ts[i + 1]
+        if ta is not None and tb is not None:
             if abs((tb - ta).total_seconds()) > reply_window_secs:
                 continue
-        except (ValueError, TypeError):
-            pass
 
         key = tuple(sorted([a, b]))
         ts = messages[i + 1]["timestamp"]

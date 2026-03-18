@@ -47,8 +47,13 @@
 			);
 		}
 
-		page = 0; // reset page when filters change
 		return msgs;
+	});
+
+	// Reset pagination when filters change
+	$effect(() => {
+		filtered;
+		page = 0;
 	});
 
 	let paged = $derived(filtered.slice(0, (page + 1) * PAGE_SIZE));

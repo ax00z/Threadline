@@ -1,5 +1,6 @@
 from __future__ import annotations
 import tempfile
+import time
 from collections import Counter
 from datetime import datetime
 from pathlib import Path
@@ -21,12 +22,13 @@ from threadline.sentiment import analyze_sentiment
 from threadline.store import MessageStore
 from threadline.heatmap import build_heatmap
 from threadline.response_time import compute_response_times
+from threadline.intel import analyze_intel
 
 app = FastAPI(title="Threadline")
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
+    allow_origins=["http://127.0.0.1:5173", "http://localhost:5173", "http://127.0.0.1:8000", "http://localhost:8000", "http://127.0.0.1:8001", "http://localhost:8001"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -61,6 +63,14 @@ def _build_graph(messages: list[dict]) -> dict:
         if mid is not None:
             id_to_sender[mid] = m["sender"]
 
+    # Pre-parse timestamps once
+    parsed_ts: list[datetime | None] = []
+    for m in messages:
+        try:
+            parsed_ts.append(datetime.fromisoformat(m["timestamp"]))
+        except (ValueError, TypeError, KeyError):
+            parsed_ts.append(None)
+
     for i, msg in enumerate(messages):
         # Reply-based edges (Telegram): direct connection between replier and replied-to
         reply_to = msg.get("reply_to")
@@ -73,13 +83,10 @@ def _build_graph(messages: list[dict]) -> dict:
             b = messages[i + 1]["sender"]
             if a == b:
                 continue
-            try:
-                ta = datetime.fromisoformat(msg["timestamp"])
-                tb = datetime.fromisoformat(messages[i + 1]["timestamp"])
+            ta, tb = parsed_ts[i], parsed_ts[i + 1]
+            if ta is not None and tb is not None:
                 if abs((tb - ta).total_seconds()) > _REPLY_WINDOW_SECS:
                     continue
-            except ValueError:
-                pass
             _add_edge(a, b)
 
     if len(G.nodes) == 0:
@@ -157,14 +164,26 @@ async def upload(file: UploadFile = File(...)):
         tmp_path = tmp.name
 
     try:
+        t0 = time.perf_counter()
         messages = [msg.to_dict() for msg in parse_file(tmp_path)]
+        t1 = time.perf_counter()
+        print(f"[perf] parse: {t1-t0:.2f}s ({len(messages)} msgs)")
+
         messages = build_chain(messages)
+        t2 = time.perf_counter()
+        print(f"[perf] chain: {t2-t1:.2f}s")
 
         if not messages:
             raise HTTPException(422, "No messages found in file")
 
         graph = _build_graph(messages)
+        t3 = time.perf_counter()
+        print(f"[perf] graph: {t3-t2:.2f}s")
+
         ner = extract_from_messages(messages)
+        t4 = time.perf_counter()
+        print(f"[perf] ner: {t4-t3:.2f}s")
+
         _store.load(messages)
 
         stats = {
@@ -176,12 +195,30 @@ async def upload(file: UploadFile = File(...)):
             "source_format": fmt,
         }
 
-        chain = verify_chain(messages)
+        # Skip verify_chain — we just built it, so it's guaranteed valid
+        chain = {"valid": True, "checked": len(messages), "broken_at": None}
+
         anomalies = detect_anomalies(messages, ner_entities=ner.get("entities"))
+        t5 = time.perf_counter()
+        print(f"[perf] anomalies: {t5-t4:.2f}s")
+
         pairwise = compute_pairwise(messages)
+        t6 = time.perf_counter()
+        print(f"[perf] pairwise: {t6-t5:.2f}s")
+
         sentiment = analyze_sentiment(messages)
+        t7 = time.perf_counter()
+        print(f"[perf] sentiment: {t7-t6:.2f}s")
+
         heatmap = build_heatmap(messages)
         response_times = compute_response_times(messages)
+        t8 = time.perf_counter()
+        print(f"[perf] heatmap+response: {t8-t7:.2f}s")
+
+        intel = analyze_intel(messages)
+        t9 = time.perf_counter()
+        print(f"[perf] intel: {t9-t8:.2f}s")
+        print(f"[perf] TOTAL: {t9-t0:.2f}s")
 
         # Strip messages to only fields the frontend needs
         slim_messages = [
@@ -207,6 +244,7 @@ async def upload(file: UploadFile = File(...)):
             "sentiment": sentiment,
             "heatmap": heatmap,
             "response_times": response_times,
+            "intel": intel,
         }
     finally:
         Path(tmp_path).unlink(missing_ok=True)

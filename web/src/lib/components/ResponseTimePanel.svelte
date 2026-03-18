@@ -6,7 +6,7 @@
 
 	let sortedSenders = $derived.by(() => {
 		return Object.entries(responseTimes.per_sender)
-			.sort((a, b) => a[1].avg_seconds - b[1].avg_seconds);
+			.toSorted((a, b) => a[1].avg_seconds - b[1].avg_seconds);
 	});
 
 	let maxAvg = $derived.by(() => {
