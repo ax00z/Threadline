@@ -405,12 +405,31 @@
 	}
 
 	/* Lazy-render off-screen sections for performance */
+	.section-network,
+	.section-timeline,
+	.section-main,
 	.section-duo,
 	.section-relationships,
 	.section-intel,
 	.section-insights,
 	.section-advanced {
 		content-visibility: auto;
+		contain-intrinsic-size: auto 420px;
+		contain: layout paint style;
+	}
+
+	/* Slightly larger placeholder for graph + timeline blocks */
+	.section-network,
+	.section-timeline {
+		contain-intrinsic-size: auto 560px;
+	}
+
+	/* Keep top stats fully active to avoid first-paint jumps */
+	.section-duo,
+	.section-relationships,
+	.section-intel,
+	.section-insights,
+	.section-advanced {
 		contain-intrinsic-size: auto 400px;
 	}
 

@@ -2,8 +2,6 @@
 	import { onMount, onDestroy } from 'svelte';
 	import Graph from 'graphology';
 	import Sigma from 'sigma';
-	import forceAtlas2 from 'graphology-layout-forceatlas2';
-	import { circular } from 'graphology-layout';
 	import type { GraphData, GraphNode } from '$lib/types';
 	import { communityColor, nodeColor } from '$lib/colors';
 	import { filterState, selectPerson, selectEdge, clearSelection } from '$lib/selection.svelte';
@@ -22,6 +20,69 @@
 	let draggedNode: string | null = null;
 	let isDragging = false;
 
+	function applySpacedCommunityLayout(input: GraphData, target: Graph, spacingBoost = 1) {
+		const nodesByCommunity = new Map<number, GraphNode[]>();
+		for (const node of input.nodes) {
+			const bucket = nodesByCommunity.get(node.community) ?? [];
+			bucket.push(node);
+			nodesByCommunity.set(node.community, bucket);
+		}
+
+		const communities = Array.from(nodesByCommunity.keys()).sort((a, b) => a - b);
+		const communityCount = Math.max(communities.length, 1);
+		const slotsPerRing = Math.max(6, Math.ceil(Math.sqrt(communityCount)) * 2);
+		const ringGap = Math.max(70, Math.sqrt(input.nodes.length) * 18) * spacingBoost;
+		const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+
+		communities.forEach((communityId, idx) => {
+			const members = nodesByCommunity.get(communityId) ?? [];
+			const ring = Math.floor(idx / slotsPerRing);
+			const slotInRing = idx % slotsPerRing;
+			const ringRadius = (ring + 1) * ringGap;
+			const angle = (slotInRing / slotsPerRing) * Math.PI * 2;
+			const centerX = Math.cos(angle) * ringRadius;
+			const centerY = Math.sin(angle) * ringRadius;
+			const localStep = Math.max(12, 20 * spacingBoost);
+
+			members.forEach((member, memberIndex) => {
+				const theta = memberIndex * goldenAngle;
+				const radius = Math.sqrt(memberIndex + 1) * localStep;
+				target.setNodeAttribute(member.id, 'x', centerX + Math.cos(theta) * radius);
+				target.setNodeAttribute(member.id, 'y', centerY + Math.sin(theta) * radius);
+			});
+		});
+	}
+
+	function normalizeGraphSpan(target: Graph, desiredSpan: number) {
+		let minX = Number.POSITIVE_INFINITY;
+		let maxX = Number.NEGATIVE_INFINITY;
+		let minY = Number.POSITIVE_INFINITY;
+		let maxY = Number.NEGATIVE_INFINITY;
+
+		target.forEachNode((_node, attrs) => {
+			const x = attrs.x ?? 0;
+			const y = attrs.y ?? 0;
+			if (x < minX) minX = x;
+			if (x > maxX) maxX = x;
+			if (y < minY) minY = y;
+			if (y > maxY) maxY = y;
+		});
+
+		const width = Math.max(maxX - minX, 1);
+		const height = Math.max(maxY - minY, 1);
+		const currentSpan = Math.max(width, height, 1);
+		const scale = desiredSpan / currentSpan;
+		const cx = (minX + maxX) / 2;
+		const cy = (minY + maxY) / 2;
+
+		target.forEachNode((node, attrs) => {
+			const x = attrs.x ?? 0;
+			const y = attrs.y ?? 0;
+			target.setNodeAttribute(node, 'x', (x - cx) * scale);
+			target.setNodeAttribute(node, 'y', (y - cy) * scale);
+		});
+	}
+
 	function zoomIn() {
 		if (!renderer) return;
 		const cam = renderer.getCamera();
@@ -38,6 +99,22 @@
 		if (!renderer) return;
 		const cam = renderer.getCamera();
 		cam.animatedReset({ duration: 300 });
+	}
+
+	function spreadGraph() {
+		if (!g || !renderer) return;
+		// deterministic spacing pass: this guarantees the button actually spreads nodes
+		applySpacedCommunityLayout(graph, g, 2.4);
+		normalizeGraphSpan(g, g.order > 45 ? 520 : g.order > 30 ? 400 : 280);
+		renderer.refresh();
+		// fit everything in view
+		const cam = renderer.getCamera();
+		cam.animatedReset({ duration: 260 });
+		window.setTimeout(() => {
+			if (!renderer || !g) return;
+			const targetRatio = g.order > 45 ? 0.64 : g.order > 30 ? 0.72 : 0.84;
+			renderer.getCamera().animate({ ratio: targetRatio }, { duration: 240 });
+		}, 270);
 	}
 
 	function activeNodes(): Set<string> | null {
@@ -84,19 +161,25 @@
 		if (!graph.nodes.length || !container || container.clientWidth === 0) return;
 
 		g = new Graph({ type: 'undirected', multi: false });
+		const nodeCount = graph.nodes.length;
+		const edgeCount = graph.edges.length;
+		const maxPossibleEdges = Math.max((nodeCount * (nodeCount - 1)) / 2, 1);
+		const density = edgeCount / maxPossibleEdges;
+		const perfMode = nodeCount > 40 || edgeCount > 140;
 
 		// Compute relative node sizes based on pagerank
 		const pageranks = graph.nodes.map((n) => n.pagerank);
 		const maxPR = Math.max(...pageranks, 0.001);
 		const minPR = Math.min(...pageranks);
 		const prRange = maxPR - minPR || 1;
-		const MIN_SIZE = 4;
-		const MAX_SIZE = 16;
+		const MIN_SIZE = nodeCount > 45 ? 1.5 : nodeCount > 30 ? 2.3 : nodeCount > 15 ? 3.2 : 4;
+		const MAX_SIZE = nodeCount > 45 ? 6.6 : nodeCount > 30 ? 8.7 : nodeCount > 15 ? 12.6 : 16;
+		const denseSizeFactor = density > 0.16 ? 0.62 : density > 0.1 ? 0.74 : 1;
 
 		graph.nodes.forEach((node, idx) => {
 			const color = nodeColor(idx);
 			const normalized = (node.pagerank - minPR) / prRange;
-			const size = MIN_SIZE + normalized * (MAX_SIZE - MIN_SIZE);
+			const size = (MIN_SIZE + normalized * (MAX_SIZE - MIN_SIZE)) * denseSizeFactor;
 			g!.addNode(node.id, {
 				label: node.id,
 				size,
@@ -114,6 +197,14 @@
 		const weights = graph.edges.map((e) => e.weight);
 		const maxW = Math.max(...weights, 1);
 
+		// scale edge thickness — much thinner for dense graphs to reduce visual clutter
+		const edgeDensity = graph.edges.length / Math.max(graph.nodes.length, 1);
+		const edgeScale = edgeDensity > 10 ? 0.12 : edgeDensity > 6 ? 0.2 : edgeDensity > 3 ? 0.34 : 0.5;
+		const baseEdgeSize = 0.04 + 0.08 * edgeScale;
+		const edgeSizeRange = 0.42 * edgeScale;
+		// also make edges more transparent on dense graphs
+		const edgeAlpha = edgeDensity > 10 ? '12' : edgeDensity > 6 ? '16' : edgeDensity > 3 ? '1a' : '22';
+
 		graph.edges.forEach((edge) => {
 			if (
 				g!.hasNode(edge.source) &&
@@ -122,27 +213,20 @@
 			) {
 				const normalizedW = edge.weight / maxW;
 				g!.addEdge(edge.source, edge.target, {
-					size: 0.4 + normalizedW * 1.6,
-					color: '#8b949e30',
+					size: baseEdgeSize + normalizedW * edgeSizeRange,
+					color: `#8b949e${edgeAlpha}`,
 					weight: edge.weight,
 				});
 			}
 		});
 
-		circular.assign(g!);
-		forceAtlas2.assign(g!, {
-			iterations: 300,
-			settings: {
-				gravity: 1,
-				scalingRatio: 20,
-				strongGravityMode: false,
-				barnesHutOptimize: true,
-			},
-		});
+		applySpacedCommunityLayout(graph, g!, 1.8);
+		normalizeGraphSpan(g!, nodeCount > 45 ? 460 : nodeCount > 30 ? 340 : 220);
 
 		renderer = new Sigma(g!, container, {
 			renderEdgeLabels: false,
-			enableEdgeEvents: true,
+			enableEdgeEvents: !perfMode,
+			renderLabels: !perfMode,
 			allowInvalidContainer: true,
 			labelFont: '"Inter", sans-serif',
 			labelSize: 11,
@@ -150,12 +234,17 @@
 			labelColor: { color: '#cdd9e5' },
 			defaultEdgeColor: '#8b949e30',
 			defaultNodeType: 'circle',
-			stagePadding: 60,
-			labelRenderedSizeThreshold: 0,
+			stagePadding: nodeCount > 40 ? 28 : nodeCount > 25 ? 36 : 48,
+			labelRenderedSizeThreshold: nodeCount > 45 ? 14 : nodeCount > 30 ? 10 : nodeCount > 20 ? 6 : 0,
+			hideLabelsOnMove: perfMode,
+			hideEdgesOnMove: perfMode,
 			zoomDuration: 150,
 			inertiaDuration: 150,
 			zoomingRatio: 1.3,
 		});
+		const initialRatio = nodeCount > 45 ? 0.74 : nodeCount > 30 ? 0.82 : 0.92;
+		const camera = renderer.getCamera();
+		camera.setState({ ...camera.getState(), ratio: initialRatio });
 
 		// --- Scroll-zoom gating: only zoom when graph is "activated" by click ---
 		// Sigma listens on the container in bubble phase, so capturing + stopping blocks it
@@ -165,7 +254,7 @@
 				// Don't preventDefault — let page scroll normally when graph isn't active
 			}
 		};
-		container.addEventListener('wheel', wheelHandler, { capture: true });
+		container.addEventListener('wheel', wheelHandler, { capture: true, passive: true });
 
 		// Activate zoom on click inside graph
 		const activateHandler = () => {
@@ -339,8 +428,16 @@
 				{/if}
 				<div class="zoom-controls">
 					<button class="zoom-btn" onclick={zoomIn} title="Zoom in">+</button>
-					<button class="zoom-btn" onclick={zoomOut} title="Zoom out">−</button>
-					<button class="zoom-btn zoom-reset" onclick={zoomReset} title="Reset view">⟳</button>
+					<button class="zoom-btn" onclick={zoomOut} title="Zoom out">-</button>
+					<button class="zoom-btn zoom-reset" onclick={zoomReset} title="Fit to view">O</button>
+					<button class="zoom-btn spread-btn" onclick={spreadGraph} title="Spread nodes apart">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+							<line x1="12" y1="5" x2="12" y2="1"/><line x1="12" y1="1" x2="10" y2="3"/><line x1="12" y1="1" x2="14" y2="3"/>
+							<line x1="12" y1="19" x2="12" y2="23"/><line x1="12" y1="23" x2="10" y2="21"/><line x1="12" y1="23" x2="14" y2="21"/>
+							<line x1="5" y1="12" x2="1" y2="12"/><line x1="1" y1="12" x2="3" y2="10"/><line x1="1" y1="12" x2="3" y2="14"/>
+							<line x1="19" y1="12" x2="23" y2="12"/><line x1="23" y1="12" x2="21" y2="10"/><line x1="23" y1="12" x2="21" y2="14"/>
+						</svg>
+					</button>
 				</div>
 			</div>
 		{/if}
@@ -418,7 +515,7 @@
 	}
 
 	.canvas-wrap {
-		height: 500px;
+		height: clamp(400px, 50vh, 700px);
 		width: 100%;
 		background: var(--graph-bg);
 		cursor: default;
@@ -473,6 +570,14 @@
 
 	.zoom-reset {
 		font-size: 0.85rem;
+	}
+
+	.spread-btn {
+		margin-top: 4px;
+	}
+
+	.spread-btn svg {
+		display: block;
 	}
 
 	.zoom-hint {

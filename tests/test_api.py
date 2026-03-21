@@ -4,7 +4,7 @@ import io
 import json
 import pytest
 from fastapi.testclient import TestClient
-from threadline.api import app
+from threadline.api import app, _DENSE_GRAPH_EDGE_THRESHOLD, _build_graph
 
 
 client = TestClient(app)
@@ -66,6 +66,24 @@ def test_upload_returns_graph():
     assert "graph" in data
     assert len(data["graph"]["nodes"]) == 2
     assert len(data["graph"]["edges"]) >= 1
+
+
+def test_build_graph_prunes_dense_networks():
+    participants = [f"Person-{i:02d}" for i in range(30)]
+    messages = []
+
+    for cycle in range(12):
+        for idx, sender in enumerate(participants):
+            messages.append({
+                "sender": sender,
+                "timestamp": f"2025-01-01T00:{cycle:02d}:{idx:02d}",
+                "body": f"msg {cycle}-{idx}",
+            })
+
+    graph = _build_graph(messages)
+
+    assert len(graph["nodes"]) == len(participants)
+    assert len(graph["edges"]) <= max(_DENSE_GRAPH_EDGE_THRESHOLD, len(participants) * 5)
 
 
 def test_upload_returns_ner():

@@ -42,8 +42,72 @@ else:
 
 _ACCEPTED = {".txt", ".json", ".csv"}
 _REPLY_WINDOW_SECS = 3600  # 1 hour window for consecutive-message edges
+_DENSE_GRAPH_NODE_THRESHOLD = 25
+_DENSE_GRAPH_EDGE_THRESHOLD = 160
+_MAX_NEIGHBORS_PER_NODE = 5
 
 _store = MessageStore()
+
+
+def _prune_dense_graph(G: nx.Graph) -> nx.Graph:
+    edge_count = G.number_of_edges()
+    node_count = G.number_of_nodes()
+    if node_count < _DENSE_GRAPH_NODE_THRESHOLD or edge_count <= _DENSE_GRAPH_EDGE_THRESHOLD:
+        return G
+
+    pruned = nx.Graph()
+    pruned.add_nodes_from(G.nodes(data=True))
+
+    strongest_neighbors: dict[str, set[str]] = {}
+    for node in G.nodes:
+        ranked = sorted(
+            G.edges(node, data=True),
+            key=lambda item: (
+                item[2].get("weight", 1),
+                G.nodes[item[1]].get("message_count", 0),
+                item[1],
+            ),
+            reverse=True,
+        )
+        strongest_neighbors[node] = {
+            neighbor
+            for _, neighbor, _ in ranked[:_MAX_NEIGHBORS_PER_NODE]
+        }
+
+    for u, v, data in sorted(
+        G.edges(data=True),
+        key=lambda item: (
+            item[2].get("weight", 1),
+            G.nodes[item[0]].get("message_count", 0) + G.nodes[item[1]].get("message_count", 0),
+            item[0],
+            item[1],
+        ),
+        reverse=True,
+    ):
+        if v in strongest_neighbors[u] or u in strongest_neighbors[v]:
+            pruned.add_edge(u, v, **data)
+
+    # Safety valve: if an unusually flat graph still remains very dense,
+    # keep only the strongest global edges after the per-node pass.
+    max_edges = max(_DENSE_GRAPH_EDGE_THRESHOLD, node_count * _MAX_NEIGHBORS_PER_NODE)
+    if pruned.number_of_edges() > max_edges:
+        trimmed = nx.Graph()
+        trimmed.add_nodes_from(pruned.nodes(data=True))
+        ranked_edges = sorted(
+            pruned.edges(data=True),
+            key=lambda item: (
+                item[2].get("weight", 1),
+                pruned.nodes[item[0]].get("message_count", 0) + pruned.nodes[item[1]].get("message_count", 0),
+                item[0],
+                item[1],
+            ),
+            reverse=True,
+        )
+        for u, v, data in ranked_edges[:max_edges]:
+            trimmed.add_edge(u, v, **data)
+        return trimmed
+
+    return pruned
 
 
 def _build_graph(messages: list[dict]) -> dict:
@@ -93,6 +157,8 @@ def _build_graph(messages: list[dict]) -> dict:
                 if abs((tb - ta).total_seconds()) > _REPLY_WINDOW_SECS:
                     continue
             _add_edge(a, b)
+
+    G = _prune_dense_graph(G)
 
     if len(G.nodes) == 0:
         return {"nodes": [], "edges": [], "communities": [], "sender_counts": {}}
