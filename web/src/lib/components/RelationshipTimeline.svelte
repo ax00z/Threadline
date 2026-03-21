@@ -6,12 +6,16 @@
 
 	let sortBy = $state<'messages' | 'recent' | 'duration'>('messages');
 	let collapsed = $state(false);
+	const SHOW_LIMIT = 30;
+	let showAll = $state(false);
 
 	let sorted = $derived.by(() => {
 		if (sortBy === 'messages') return pairwise.toSorted((a, b) => b.message_count - a.message_count);
 		if (sortBy === 'recent') return pairwise.toSorted((a, b) => b.last_contact.localeCompare(a.last_contact));
 		return pairwise.toSorted((a, b) => b.duration_days - a.duration_days);
 	});
+
+	let visible = $derived(showAll ? sorted : sorted.slice(0, SHOW_LIMIT));
 
 	function isActive(p: PairwiseStats): boolean {
 		const sel = filterState.selection;
@@ -73,7 +77,7 @@
 		<!-- collapsed -->
 	{:else if pairwise.length > 0}
 		<div class="list">
-			{#each sorted as pair}
+			{#each visible as pair}
 				{@const spark = sparklineBars(pair)}
 				<button
 					class="pair-row"
@@ -102,6 +106,11 @@
 					{/if}
 				</button>
 			{/each}
+			{#if !showAll && sorted.length > SHOW_LIMIT}
+				<button class="show-more" onclick={() => showAll = true}>
+					Show all {sorted.length} relationships
+				</button>
+			{/if}
 		</div>
 	{:else}
 		<div class="empty">No pairwise communication detected</div>
@@ -251,5 +260,23 @@
 		text-align: center;
 		color: var(--text-muted);
 		font-size: 0.82rem;
+	}
+
+	.show-more {
+		display: block;
+		width: 100%;
+		padding: 0.6rem;
+		background: var(--bg-secondary);
+		border: none;
+		border-top: 1px solid var(--border);
+		color: var(--accent);
+		font-size: 0.78rem;
+		cursor: pointer;
+		text-align: center;
+		font-family: var(--font-mono);
+	}
+
+	.show-more:hover {
+		background: var(--bg-hover);
 	}
 </style>

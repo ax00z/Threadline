@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-:root {
+:root, [data-theme="dark"] {
 	--bg-primary: #060a10;
 	--bg-secondary: #0b1018;
 	--bg-card: #0f1620;
@@ -23,6 +23,39 @@
 	--radius-sm: 2px;
 	--font-mono: 'JetBrains Mono', 'Consolas', 'SF Mono', monospace;
 	--font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	--graph-bg: radial-gradient(ellipse at center, #0c1220 0%, #060a10 70%, #030508 100%);
+	--graph-grid: rgba(45, 127, 249, 0.03);
+	--graph-node-dim: #1b253580;
+	--graph-edge-dim: #0a0e1400;
+	--graph-tooltip-bg: #0a0f18ee;
+	--graph-tooltip-border: #1b2535;
+}
+
+[data-theme="light"] {
+	--bg-primary: #f0f2f5;
+	--bg-secondary: #e4e7ec;
+	--bg-card: #ffffff;
+	--bg-hover: #f5f6f8;
+	--bg-inset: #ebeef2;
+	--accent: #2563eb;
+	--accent-dim: #1d4ed8;
+	--accent-muted: #2563eb08;
+	--accent-glow: #2563eb18;
+	--border: #d1d5db;
+	--border-subtle: #e5e7eb;
+	--text-primary: #1f2937;
+	--text-secondary: #6b7280;
+	--text-muted: #9ca3af;
+	--text-label: #6b7280;
+	--danger: #dc2626;
+	--success: #16a34a;
+	--warning: #d97706;
+	--graph-bg: radial-gradient(ellipse at center, #f0f4f8 0%, #e8ecf0 70%, #e0e4e8 100%);
+	--graph-grid: rgba(37, 99, 235, 0.06);
+	--graph-node-dim: #d1d5db80;
+	--graph-edge-dim: #f0f2f500;
+	--graph-tooltip-bg: #ffffffee;
+	--graph-tooltip-border: #d1d5db;
 }
 
 *, *::before, *::after {

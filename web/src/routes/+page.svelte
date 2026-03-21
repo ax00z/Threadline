@@ -3,6 +3,8 @@
 	import { buildSenderColorMap } from '$lib/colors';
 	import type { UploadResponse } from '$lib/types';
 	import { filterState, clearAll } from '$lib/selection.svelte';
+	import { theme } from '$lib/theme.svelte';
+	import { onMount } from 'svelte';
 
 	import DropZone from '$lib/components/DropZone.svelte';
 	import ParseProgress from '$lib/components/ParseProgress.svelte';
@@ -72,6 +74,10 @@
 		clearAll();
 	}
 
+	onMount(() => {
+		theme.init();
+	});
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && hasFilter) {
 			clearAll();
@@ -88,6 +94,13 @@
 			<span class="file-label">{fileName}</span>
 			<button class="btn-new" onclick={reset}>Upload new file</button>
 		{/if}
+		<button class="btn-theme" onclick={() => theme.toggle()} title="Toggle light/dark mode">
+			{#if theme.value === 'dark'}
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+			{:else}
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+			{/if}
+		</button>
 	</header>
 
 	<main>
@@ -247,6 +260,26 @@
 		color: var(--accent);
 	}
 
+	.btn-theme {
+		background: transparent;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-sm);
+		color: var(--text-muted);
+		padding: 0.2rem 0.4rem;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.15s;
+		flex-shrink: 0;
+		margin-left: auto;
+	}
+
+	.btn-theme:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
 	main {
 		flex: 1;
 		overflow-y: auto;
@@ -368,6 +401,16 @@
 	.section-intel,
 	.section-advanced {
 		flex-shrink: 0;
+	}
+
+	/* Lazy-render off-screen sections for performance */
+	.section-duo,
+	.section-relationships,
+	.section-intel,
+	.section-insights,
+	.section-advanced {
+		content-visibility: auto;
+		contain-intrinsic-size: auto 400px;
 	}
 
 	.section-stats :global(.toolbar) {

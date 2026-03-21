@@ -7,6 +7,7 @@
 	import type { GraphData, GraphNode } from '$lib/types';
 	import { communityColor, nodeColor } from '$lib/colors';
 	import { filterState, selectPerson, selectEdge, clearSelection } from '$lib/selection.svelte';
+	import { theme } from '$lib/theme.svelte';
 
 	let { graph }: { graph: GraphData } = $props();
 
@@ -15,10 +16,29 @@
 	let g: Graph | null = null;
 	let hovered = $state<GraphNode | null>(null);
 	let collapsed = $state(false);
+	let zoomActive = $state(false);
 
 	// drag state
 	let draggedNode: string | null = null;
 	let isDragging = false;
+
+	function zoomIn() {
+		if (!renderer) return;
+		const cam = renderer.getCamera();
+		cam.animatedZoom({ duration: 200 });
+	}
+
+	function zoomOut() {
+		if (!renderer) return;
+		const cam = renderer.getCamera();
+		cam.animatedUnzoom({ duration: 200 });
+	}
+
+	function zoomReset() {
+		if (!renderer) return;
+		const cam = renderer.getCamera();
+		cam.animatedReset({ duration: 300 });
+	}
 
 	function activeNodes(): Set<string> | null {
 		const sel = filterState.selection;
@@ -113,8 +133,8 @@
 		forceAtlas2.assign(g!, {
 			iterations: 300,
 			settings: {
-				gravity: 0.5,
-				scalingRatio: 50,
+				gravity: 1,
+				scalingRatio: 20,
 				strongGravityMode: false,
 				barnesHutOptimize: true,
 			},
@@ -132,35 +152,67 @@
 			defaultNodeType: 'circle',
 			stagePadding: 60,
 			labelRenderedSizeThreshold: 0,
+			zoomDuration: 150,
+			inertiaDuration: 150,
+			zoomingRatio: 1.3,
 		});
 
-		// --- Node drag support ---
+		// --- Scroll-zoom gating: only zoom when graph is "activated" by click ---
+		// Sigma listens on the container in bubble phase, so capturing + stopping blocks it
+		const wheelHandler = (e: WheelEvent) => {
+			if (!zoomActive) {
+				e.stopImmediatePropagation();
+				// Don't preventDefault — let page scroll normally when graph isn't active
+			}
+		};
+		container.addEventListener('wheel', wheelHandler, { capture: true });
+
+		// Activate zoom on click inside graph
+		const activateHandler = () => {
+			zoomActive = true;
+		};
+		container.addEventListener('mousedown', activateHandler);
+
+		// Deactivate zoom when mouse leaves graph
+		const deactivateHandler = () => {
+			if (!isDragging) zoomActive = false;
+		};
+		container.addEventListener('mouseleave', deactivateHandler);
+
+		// --- Node drag support with damping ---
+		let dragOriginGraph: { x: number; y: number } | null = null;
+		let dragOriginNode: { x: number; y: number } | null = null;
+		const DRAG_DAMPING = 0.55; // 0–1, lower = slower drag
+
 		renderer.on('downNode', (e) => {
 			isDragging = true;
 			draggedNode = e.node;
-			// disable camera movement while dragging
 			renderer!.getCamera().disable();
+			// store origin positions for damped drag
+			const nodePos = { x: g!.getNodeAttribute(e.node, 'x'), y: g!.getNodeAttribute(e.node, 'y') };
+			const mousePos = renderer!.viewportToGraph(e.event as any);
+			dragOriginGraph = mousePos;
+			dragOriginNode = nodePos;
 		});
 
 		renderer.getMouseCaptor().on('mousemovebody', (e: any) => {
-			if (!isDragging || !draggedNode || !renderer || !g) return;
-			// convert viewport coords to graph coords
+			if (!isDragging || !draggedNode || !renderer || !g || !dragOriginGraph || !dragOriginNode) return;
 			const pos = renderer.viewportToGraph(e);
-			g.setNodeAttribute(draggedNode, 'x', pos.x);
-			g.setNodeAttribute(draggedNode, 'y', pos.y);
+			// Apply damping: node moves a fraction of mouse movement
+			const dx = (pos.x - dragOriginGraph.x) * DRAG_DAMPING;
+			const dy = (pos.y - dragOriginGraph.y) * DRAG_DAMPING;
+			g.setNodeAttribute(draggedNode, 'x', dragOriginNode.x + dx);
+			g.setNodeAttribute(draggedNode, 'y', dragOriginNode.y + dy);
 		});
 
 		renderer.getMouseCaptor().on('mouseup', () => {
 			if (isDragging && draggedNode) {
 				isDragging = false;
 				draggedNode = null;
+				dragOriginGraph = null;
+				dragOriginNode = null;
 				renderer?.getCamera().enable();
 			}
-		});
-
-		renderer.getMouseCaptor().on('mousedown', () => {
-			// if clicking empty space (not a node), ensure we're not dragging
-			if (!renderer?.getCustomBBox()) return;
 		});
 
 		renderer.on('enterNode', ({ node }) => {
@@ -203,6 +255,10 @@
 		const edges = activeEdges();
 
 		const sel = filterState.selection;
+		const isLight = theme.value === 'light';
+		const dimNodeColor = isLight ? '#d1d5db80' : '#1b253580';
+		const dimEdgeColor = isLight ? '#f0f2f500' : '#0a0e1400';
+
 		renderer.setSetting('nodeReducer', (node: string, data: Record<string, any>) => {
 			if (!nodes) return data;
 			const res = { ...data };
@@ -216,7 +272,7 @@
 					res.zIndex = 2;
 				}
 			} else {
-				res.color = '#1b253580';
+				res.color = dimNodeColor;
 				res.label = '';
 				res.size = data.size * 0.5;
 				res.zIndex = 0;
@@ -232,13 +288,30 @@
 				res.size = Math.max(data.size, 1.2);
 				res.zIndex = 1;
 			} else {
-				res.color = '#0a0e1400';
+				res.color = dimEdgeColor;
 				res.size = 0.15;
 				res.zIndex = 0;
 			}
 			return res;
 		});
 
+		renderer.refresh();
+	});
+
+	// Update Sigma label colors when theme changes
+	$effect(() => {
+		if (!renderer) return;
+		const t = theme.value;
+		const labelClr = t === 'light' ? '#1f2937' : '#cdd9e5';
+		const edgeClr = t === 'light' ? '#9ca3af40' : '#8b949e30';
+		renderer.setSetting('labelColor', { color: labelClr });
+		renderer.setSetting('defaultEdgeColor', edgeClr);
+		// Update edge colors in graphology
+		if (g) {
+			g.forEachEdge((edge) => {
+				g!.setEdgeAttribute(edge, 'color', edgeClr);
+			});
+		}
 		renderer.refresh();
 	});
 
@@ -259,7 +332,17 @@
 		{#if graph.nodes.length === 0}
 			<div class="empty">Not enough data to build a network graph.</div>
 		{:else}
-			<div class="canvas-wrap" bind:this={container}></div>
+			<div class="graph-container">
+				<div class="canvas-wrap" bind:this={container}></div>
+				{#if !zoomActive}
+					<div class="zoom-hint">Click graph to enable scroll zoom</div>
+				{/if}
+				<div class="zoom-controls">
+					<button class="zoom-btn" onclick={zoomIn} title="Zoom in">+</button>
+					<button class="zoom-btn" onclick={zoomOut} title="Zoom out">−</button>
+					<button class="zoom-btn zoom-reset" onclick={zoomReset} title="Reset view">⟳</button>
+				</div>
+			</div>
 		{/if}
 	{/if}
 
@@ -283,7 +366,7 @@
 
 <style>
 	.graph-card {
-		background: #060a10;
+		background: var(--bg-primary);
 		border-radius: var(--radius);
 		overflow: hidden;
 		position: relative;
@@ -296,14 +379,14 @@
 		width: 100%;
 		padding: 0.65rem 1rem;
 		border: none;
-		border-bottom: 1px solid #111b28;
-		background: #080c14;
+		border-bottom: 1px solid var(--border-subtle);
+		background: var(--bg-secondary);
 		gap: 0.5rem;
 		cursor: pointer;
 		color: var(--text-primary);
 	}
 
-	.graph-header:hover { background: #0c1018; }
+	.graph-header:hover { background: var(--bg-hover); }
 
 	.toggle-icon {
 		font-size: 0.7rem;
@@ -330,10 +413,14 @@
 		font-family: var(--font-mono);
 	}
 
+	.graph-container {
+		position: relative;
+	}
+
 	.canvas-wrap {
 		height: 500px;
 		width: 100%;
-		background: radial-gradient(ellipse at center, #0c1220 0%, #060a10 70%, #030508 100%);
+		background: var(--graph-bg);
 		cursor: default;
 		position: relative;
 	}
@@ -343,11 +430,64 @@
 		position: absolute;
 		inset: 0;
 		background:
-			linear-gradient(rgba(45, 127, 249, 0.03) 1px, transparent 1px),
-			linear-gradient(90deg, rgba(45, 127, 249, 0.03) 1px, transparent 1px);
+			linear-gradient(var(--graph-grid) 1px, transparent 1px),
+			linear-gradient(90deg, var(--graph-grid) 1px, transparent 1px);
 		background-size: 40px 40px;
 		pointer-events: none;
 		z-index: 1;
+	}
+
+	.zoom-controls {
+		position: absolute;
+		top: 0.75rem;
+		right: 0.75rem;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		z-index: 10;
+	}
+
+	.zoom-btn {
+		width: 30px;
+		height: 30px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--graph-tooltip-bg);
+		border: 1px solid var(--graph-tooltip-border);
+		color: var(--text-primary);
+		font-size: 1rem;
+		font-weight: 600;
+		cursor: pointer;
+		border-radius: 4px;
+		backdrop-filter: blur(8px);
+		transition: background 0.15s;
+		line-height: 1;
+		padding: 0;
+	}
+
+	.zoom-btn:hover {
+		background: var(--bg-hover);
+		color: var(--text-primary);
+	}
+
+	.zoom-reset {
+		font-size: 0.85rem;
+	}
+
+	.zoom-hint {
+		position: absolute;
+		bottom: 0.75rem;
+		right: 0.75rem;
+		background: var(--graph-tooltip-bg);
+		border: 1px solid var(--graph-tooltip-border);
+		border-radius: 4px;
+		padding: 0.3rem 0.6rem;
+		color: var(--text-muted);
+		font-size: 0.68rem;
+		pointer-events: none;
+		z-index: 10;
+		backdrop-filter: blur(8px);
 	}
 
 	.empty {
@@ -363,21 +503,21 @@
 		position: absolute;
 		bottom: 1rem;
 		left: 1rem;
-		background: #0a0f18ee;
-		border: 1px solid #1b2535;
+		background: var(--graph-tooltip-bg);
+		border: 1px solid var(--graph-tooltip-border);
 		border-radius: var(--radius-sm);
 		padding: 0.65rem 0.85rem;
 		pointer-events: none;
 		z-index: 10;
 		min-width: 190px;
 		backdrop-filter: blur(12px);
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 	}
 
 	.tooltip-name {
 		font-weight: 600;
 		font-size: 0.88rem;
-		color: #e6edf3;
+		color: var(--text-primary);
 		margin-bottom: 0.2rem;
 	}
 

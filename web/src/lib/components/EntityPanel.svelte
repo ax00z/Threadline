@@ -23,6 +23,8 @@
 
 	let activeFilter = $state<string | null>(null);
 	let collapsed = $state(false);
+	const ENTITY_LIMIT = 50;
+	let showAllEntities = $state(false);
 
 	let filtered = $derived.by(() => {
 		let ents = ner.unique_entities;
@@ -39,6 +41,8 @@
 
 		return ents;
 	});
+
+	let visibleEntities = $derived(showAllEntities ? filtered : filtered.slice(0, ENTITY_LIMIT));
 
 	function handleEntityClick(entity: { text: string; label: string; senders: string[] }) {
 		selectEntity(entity.text, entity.label, entity.senders);
@@ -83,7 +87,7 @@
 		</div>
 
 		<div class="entity-list">
-			{#each filtered as entity (entity.label + '|' + entity.text)}
+			{#each visibleEntities as entity (entity.label + '|' + entity.text)}
 				{@const cfg = lbl(entity.label)}
 				<button
 					class="entity-row"
@@ -99,6 +103,11 @@
 					</span>
 				</button>
 			{/each}
+			{#if !showAllEntities && filtered.length > ENTITY_LIMIT}
+				<button class="show-more" onclick={() => showAllEntities = true}>
+					Show all {filtered.length} entities
+				</button>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -239,5 +248,23 @@
 		font-size: 0.7rem;
 		white-space: nowrap;
 		flex-shrink: 0;
+	}
+
+	.show-more {
+		display: block;
+		width: 100%;
+		padding: 0.5rem;
+		background: var(--bg-secondary);
+		border: none;
+		border-top: 1px solid var(--border);
+		color: var(--accent);
+		font-size: 0.78rem;
+		cursor: pointer;
+		text-align: center;
+		font-family: var(--font-mono);
+	}
+
+	.show-more:hover {
+		background: var(--bg-hover);
 	}
 </style>

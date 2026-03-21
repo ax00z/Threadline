@@ -11,35 +11,65 @@
 	} = $props();
 
 	let search = $state('');
+	let debouncedSearch = $state('');
+	let searchTimer: ReturnType<typeof setTimeout> | undefined;
 	let collapsed = $state(false);
-	const PAGE_SIZE = 200;
+	const PAGE_SIZE = 100;
 	let page = $state(0);
 
+	// Debounce search input
+	$effect(() => {
+		const val = search;
+		clearTimeout(searchTimer);
+		searchTimer = setTimeout(() => { debouncedSearch = val; }, 200);
+	});
+
+	// Pre-index messages by sender for O(1) lookup
+	let senderIndex = $derived.by(() => {
+		const idx = new Map<string, Message[]>();
+		for (const m of messages) {
+			let arr = idx.get(m.sender);
+			if (!arr) { arr = []; idx.set(m.sender, arr); }
+			arr.push(m);
+		}
+		return idx;
+	});
+
 	let filtered = $derived.by(() => {
-		let msgs = messages;
 		const sel = filterState.selection;
 		const tr = filterState.timeRange;
+		let msgs: Message[];
+
+		// Use sender index for person/edge/entity filters (most common interaction)
+		if (sel.kind === 'person') {
+			msgs = senderIndex.get(sel.sender) || [];
+		} else if (sel.kind === 'edge') {
+			const a = senderIndex.get(sel.source) || [];
+			const b = senderIndex.get(sel.target) || [];
+			msgs = a.concat(b);
+			msgs.sort((x, y) => x.timestamp < y.timestamp ? -1 : 1);
+		} else if (sel.kind === 'entity') {
+			const senderSet = new Set(sel.senders);
+			const parts: Message[][] = [];
+			for (const s of senderSet) {
+				const arr = senderIndex.get(s);
+				if (arr) parts.push(arr);
+			}
+			msgs = parts.length === 1 ? parts[0] : parts.flat().sort((x, y) => x.timestamp < y.timestamp ? -1 : 1);
+		} else if (sel.kind === 'anomaly') {
+			const idxSet = new Set(sel.indices);
+			msgs = messages.filter((m) => m.chain_index !== undefined && idxSet.has(m.chain_index));
+		} else {
+			msgs = messages;
+		}
 
 		if (tr) {
 			msgs = msgs.filter((m) => m.timestamp >= tr.start && m.timestamp <= tr.end);
 		}
 
-		if (sel.kind === 'person') {
-			msgs = msgs.filter((m) => m.sender === sel.sender);
-		} else if (sel.kind === 'edge') {
-			msgs = msgs.filter(
-				(m) => m.sender === sel.source || m.sender === sel.target
-			);
-		} else if (sel.kind === 'entity') {
-			msgs = msgs.filter((m) => sel.senders.includes(m.sender));
-		} else if (sel.kind === 'anomaly') {
-			const idxSet = new Set(sel.indices);
-			msgs = msgs.filter((m) => m.chain_index !== undefined && idxSet.has(m.chain_index));
-		}
-
-		// text search
-		if (search) {
-			const q = search.toLowerCase();
+		// text search (debounced)
+		if (debouncedSearch) {
+			const q = debouncedSearch.toLowerCase();
 			msgs = msgs.filter(
 				(m) =>
 					m.body.toLowerCase().includes(q) ||

@@ -37,7 +37,13 @@
 	function isActive(a: Anomaly): boolean {
 		const sel = filterState.selection;
 		if (sel.kind !== 'anomaly') return false;
-		return JSON.stringify(sel.indices) === JSON.stringify(a.message_indices);
+		const si = sel.indices;
+		const mi = a.message_indices;
+		if (si.length !== mi.length) return false;
+		for (let i = 0; i < si.length; i++) {
+			if (si[i] !== mi[i]) return false;
+		}
+		return true;
 	}
 
 	function handleClick(a: Anomaly) {

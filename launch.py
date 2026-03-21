@@ -15,9 +15,16 @@ import socket
 import signal
 import threading
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
-WEB_DIR = os.path.join(ROOT, "web")
-BUILD_DIR = os.path.join(WEB_DIR, "build")
+# When frozen by PyInstaller, _MEIPASS points to the temp extract dir
+if getattr(sys, 'frozen', False):
+    ROOT = os.path.dirname(sys.executable)
+    _BUNDLE = sys._MEIPASS
+    WEB_DIR = os.path.join(_BUNDLE, "web")
+    BUILD_DIR = os.path.join(WEB_DIR, "build")
+else:
+    ROOT = os.path.dirname(os.path.abspath(__file__))
+    WEB_DIR = os.path.join(ROOT, "web")
+    BUILD_DIR = os.path.join(WEB_DIR, "build")
 
 
 def _npm():
@@ -76,7 +83,7 @@ def _run_production(port: int, rebuild: bool):
     port = _find_port(port)
     url = f"http://localhost:{port}"
     print(f"\n  THREADLINE")
-    print(f"  ─────────────────────────────")
+    print(f"  -----------------------------")
     print(f"  Local:   {url}")
     print(f"  Status:  Starting...\n")
 
@@ -86,19 +93,32 @@ def _run_production(port: int, rebuild: bool):
 
     threading.Thread(target=_open, daemon=True).start()
 
-    try:
-        subprocess.run(
-            [
-                sys.executable, "-m", "uvicorn",
+    if getattr(sys, 'frozen', False):
+        # When frozen, run uvicorn in-process (can't subprocess the exe)
+        import uvicorn
+        try:
+            uvicorn.run(
                 "threadline.api:app",
-                "--host", "127.0.0.1",
-                "--port", str(port),
-                "--log-level", "warning",
-            ],
-            cwd=ROOT,
-        )
-    except KeyboardInterrupt:
-        print("\n[threadline] Stopped.")
+                host="127.0.0.1",
+                port=port,
+                log_level="warning",
+            )
+        except KeyboardInterrupt:
+            print("\n[threadline] Stopped.")
+    else:
+        try:
+            subprocess.run(
+                [
+                    sys.executable, "-m", "uvicorn",
+                    "threadline.api:app",
+                    "--host", "127.0.0.1",
+                    "--port", str(port),
+                    "--log-level", "warning",
+                ],
+                cwd=ROOT,
+            )
+        except KeyboardInterrupt:
+            print("\n[threadline] Stopped.")
 
 
 def _run_dev():

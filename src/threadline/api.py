@@ -34,7 +34,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_WEB_BUILD = Path(__file__).resolve().parent.parent.parent / "web" / "build"
+import sys as _sys
+if getattr(_sys, 'frozen', False):
+    _WEB_BUILD = Path(_sys._MEIPASS) / "web" / "build"
+else:
+    _WEB_BUILD = Path(__file__).resolve().parent.parent.parent / "web" / "build"
 
 _ACCEPTED = {".txt", ".json", ".csv"}
 _REPLY_WINDOW_SECS = 3600  # 1 hour window for consecutive-message edges
