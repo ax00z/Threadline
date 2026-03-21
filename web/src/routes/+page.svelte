@@ -288,8 +288,9 @@
 	}
 
 	.center-wrap {
-		max-width: 560px;
-		margin: 6rem auto;
+		max-width: 480px;
+		margin: 0 auto;
+		padding-top: 18vh;
 	}
 
 	.dashboard {
