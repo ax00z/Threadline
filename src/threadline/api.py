@@ -2,6 +2,7 @@ from __future__ import annotations
 import tempfile
 import time
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 
@@ -176,13 +177,30 @@ async def upload(file: UploadFile = File(...)):
         if not messages:
             raise HTTPException(422, "No messages found in file")
 
-        graph = _build_graph(messages)
-        t3 = time.perf_counter()
-        print(f"[perf] graph: {t3-t2:.2f}s")
+        # Run heavy analysis steps in parallel (all read-only on messages)
+        results: dict = {}
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            futures = {
+                pool.submit(_build_graph, messages): "graph",
+                pool.submit(extract_from_messages, messages): "ner",
+                pool.submit(analyze_sentiment, messages): "sentiment",
+                pool.submit(compute_pairwise, messages): "pairwise",
+                pool.submit(build_heatmap, messages): "heatmap",
+                pool.submit(compute_response_times, messages): "response_times",
+                pool.submit(analyze_intel, messages): "intel",
+            }
+            for future in as_completed(futures):
+                name = futures[future]
+                results[name] = future.result()
+                print(f"[perf] {name}: {time.perf_counter()-t2:.2f}s")
 
-        ner = extract_from_messages(messages)
-        t4 = time.perf_counter()
-        print(f"[perf] ner: {t4-t3:.2f}s")
+        graph = results["graph"]
+        ner = results["ner"]
+
+        # Anomaly detection needs NER output, run after
+        anomalies = detect_anomalies(messages, ner_entities=ner.get("entities"))
+        t3 = time.perf_counter()
+        print(f"[perf] anomalies: {t3-t2:.2f}s")
 
         _store.load(messages)
 
@@ -195,30 +213,7 @@ async def upload(file: UploadFile = File(...)):
             "source_format": fmt,
         }
 
-        # Skip verify_chain — we just built it, so it's guaranteed valid
         chain = {"valid": True, "checked": len(messages), "broken_at": None}
-
-        anomalies = detect_anomalies(messages, ner_entities=ner.get("entities"))
-        t5 = time.perf_counter()
-        print(f"[perf] anomalies: {t5-t4:.2f}s")
-
-        pairwise = compute_pairwise(messages)
-        t6 = time.perf_counter()
-        print(f"[perf] pairwise: {t6-t5:.2f}s")
-
-        sentiment = analyze_sentiment(messages)
-        t7 = time.perf_counter()
-        print(f"[perf] sentiment: {t7-t6:.2f}s")
-
-        heatmap = build_heatmap(messages)
-        response_times = compute_response_times(messages)
-        t8 = time.perf_counter()
-        print(f"[perf] heatmap+response: {t8-t7:.2f}s")
-
-        intel = analyze_intel(messages)
-        t9 = time.perf_counter()
-        print(f"[perf] intel: {t9-t8:.2f}s")
-        print(f"[perf] TOTAL: {t9-t0:.2f}s")
 
         # Strip messages to only fields the frontend needs
         slim_messages = [
@@ -233,6 +228,8 @@ async def upload(file: UploadFile = File(...)):
             for m in messages
         ]
 
+        print(f"[perf] TOTAL: {time.perf_counter()-t0:.2f}s")
+
         return {
             "messages": slim_messages,
             "stats": stats,
@@ -240,11 +237,11 @@ async def upload(file: UploadFile = File(...)):
             "ner": ner,
             "chain": chain,
             "anomalies": anomalies,
-            "pairwise": pairwise,
-            "sentiment": sentiment,
-            "heatmap": heatmap,
-            "response_times": response_times,
-            "intel": intel,
+            "pairwise": results["pairwise"],
+            "sentiment": results["sentiment"],
+            "heatmap": results["heatmap"],
+            "response_times": results["response_times"],
+            "intel": results["intel"],
         }
     finally:
         Path(tmp_path).unlink(missing_ok=True)

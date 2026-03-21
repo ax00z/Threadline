@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""Threadline launcher — single entry point for dev and production.
+"""Threadline — single-command launcher.
 
-Usage:
-    python launch.py          # Production: build frontend, serve everything on port 8000
-    python launch.py --dev    # Dev: API on 8001 + Vite on 5173 with HMR
-    python launch.py --port N # Production on custom port
+    python launch.py              # Build frontend if needed, serve on port 8000
+    python launch.py --port 9000  # Custom port
+    python launch.py --rebuild    # Force frontend rebuild
+    python launch.py --dev        # Dev mode: API + Vite HMR
 """
+import os
 import subprocess
 import sys
-import os
 import time
 import webbrowser
+import socket
 import signal
+import threading
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(ROOT, "web")
@@ -22,38 +24,66 @@ def _npm():
     return "npm.cmd" if sys.platform == "win32" else "npm"
 
 
-def _build_frontend():
+def _port_free(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("127.0.0.1", port))
+            return True
+        except OSError:
+            return False
+
+
+def _find_port(start: int = 8000) -> int:
+    for p in range(start, start + 20):
+        if _port_free(p):
+            return p
+    return start
+
+
+def _build_frontend(force: bool = False):
     index = os.path.join(BUILD_DIR, "index.html")
-    if os.path.isfile(index):
-        print("[threadline] Frontend build found, skipping. Delete web/build/ to force rebuild.")
+    if not force and os.path.isfile(index):
+        print("[threadline] Frontend build exists. Use --rebuild to force.")
         return True
 
+    # Check node_modules exist
+    if not os.path.isdir(os.path.join(WEB_DIR, "node_modules")):
+        print("[threadline] Installing frontend dependencies...")
+        r = subprocess.run([_npm(), "install"], cwd=WEB_DIR, capture_output=True, text=True)
+        if r.returncode != 0:
+            print(f"[threadline] npm install failed:\n{r.stderr[-500:]}")
+            return False
+
     print("[threadline] Building frontend...")
-    result = subprocess.run(
-        [_npm(), "run", "build"],
-        cwd=WEB_DIR,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        print("[threadline] Frontend build failed:")
-        print(result.stderr[-500:] if len(result.stderr) > 500 else result.stderr)
+    r = subprocess.run([_npm(), "run", "build"], cwd=WEB_DIR, capture_output=True, text=True)
+    if r.returncode != 0:
+        print(f"[threadline] Build failed:\n{r.stderr[-500:]}")
         return False
     print("[threadline] Frontend built.")
     return True
 
 
-def _run_production(port: int):
-    if not _build_frontend():
+def _run_production(port: int, rebuild: bool):
+    if not _build_frontend(force=rebuild):
         sys.exit(1)
 
-    url = f"http://localhost:{port}"
-    print(f"[threadline] Starting on {url}")
+    # Verify build output exists
+    if not os.path.isfile(os.path.join(BUILD_DIR, "index.html")):
+        print("[threadline] ERROR: web/build/index.html not found after build.")
+        print("[threadline] Try: python launch.py --rebuild")
+        sys.exit(1)
 
-    import threading
+    port = _find_port(port)
+    url = f"http://localhost:{port}"
+    print(f"\n  THREADLINE")
+    print(f"  ─────────────────────────────")
+    print(f"  Local:   {url}")
+    print(f"  Status:  Starting...\n")
+
     def _open():
         time.sleep(1.5)
         webbrowser.open(url)
+
     threading.Thread(target=_open, daemon=True).start()
 
     try:
@@ -63,7 +93,7 @@ def _run_production(port: int):
                 "threadline.api:app",
                 "--host", "127.0.0.1",
                 "--port", str(port),
-                "--log-level", "info",
+                "--log-level", "warning",
             ],
             cwd=ROOT,
         )
@@ -72,9 +102,9 @@ def _run_production(port: int):
 
 
 def _run_dev():
-    api_port = 8001
+    api_port = _find_port(8001)
     ui_port = 5173
-    procs: list[subprocess.Popen] = []
+    procs = []
 
     def _cleanup():
         for p in procs:
@@ -119,12 +149,10 @@ def _run_dev():
                 if p.poll() is not None:
                     raise KeyboardInterrupt
             time.sleep(1)
-
     except KeyboardInterrupt:
         print("\n[threadline] Shutting down...")
     finally:
         _cleanup()
-        print("[threadline] Stopped.")
 
 
 def main():
@@ -133,13 +161,14 @@ def main():
         _run_dev()
     else:
         port = 8000
+        rebuild = "--rebuild" in args
         if "--port" in args:
             try:
                 port = int(args[args.index("--port") + 1])
             except (IndexError, ValueError):
                 print("Usage: --port NUMBER")
                 sys.exit(1)
-        _run_production(port)
+        _run_production(port, rebuild)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,8 @@ _GENESIS = "0" * 64
 
 
 def _canonical(msg: dict) -> str:
-    """deterministic json for hashing — sorted keys, compact separators"""
+    """deterministic json for hashing — sorted keys, compact separators.
+    Must match the Rust verifier format exactly."""
     subset = {k: msg[k] for k in _HASH_FIELDS if k in msg}
     return json.dumps(subset, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 

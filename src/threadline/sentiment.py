@@ -92,26 +92,24 @@ def analyze_sentiment(messages: list[dict]) -> dict:
                           "timestamp": most_neg["timestamp"], "compound": most_neg["compound"]},
     }
 
-    # shifts — compound change >0.5 within 5 messages from same sender
+    # shifts — compound change >0.5 vs last message from same sender
     shifts: list[dict] = []
-    sender_history: dict[str, list[dict]] = {}
+    sender_last: dict[str, float] = {}
     for s in scored:
         name = s["sender"]
-        hist = sender_history.setdefault(name, [])
-        hist.append(s)
-        if len(hist) >= 2:
-            window = hist[-5:]
-            for prev in window[:-1]:
-                delta = s["compound"] - prev["compound"]
-                if abs(delta) > 0.5:
-                    direction = "positive" if delta > 0 else "negative"
-                    shifts.append({
-                        "timestamp": s["timestamp"],
-                        "sender": name,
-                        "description": f"sentiment shift {direction} ({delta:+.2f})",
-                        "magnitude": round(abs(delta), 3),
-                    })
-                    break
+        compound = s["compound"]
+        prev = sender_last.get(name)
+        if prev is not None:
+            delta = compound - prev
+            if abs(delta) > 0.5:
+                direction = "positive" if delta > 0 else "negative"
+                shifts.append({
+                    "timestamp": s["timestamp"],
+                    "sender": name,
+                    "description": f"sentiment shift {direction} ({delta:+.2f})",
+                    "magnitude": round(abs(delta), 3),
+                })
+        sender_last[name] = compound
 
     return {
         "available": True,
