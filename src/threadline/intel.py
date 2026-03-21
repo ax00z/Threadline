@@ -1,7 +1,6 @@
 """Algorithmic intelligence module — TF-IDF keywords, topic clustering, threat scoring.
 
-Pure Python + scikit-learn. No LLM, no cloud APIs.
-Falls back gracefully if sklearn is not installed.
+Pure Python + scikit-learn. Falls back gracefully if sklearn is not installed.
 """
 from __future__ import annotations
 

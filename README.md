@@ -129,5 +129,5 @@ python scripts/gen_test_data.py -n 5000 -p 4 --format telegram -o data/test.json
 - [x] Phase 5 — SHA-256 hash chain of custody (Python + Rust verifier)
 - [x] Phase 6 — anomaly detection, evidence export, relationship timeline
 - [x] Phase 7 — profiling and optimizing processing pipeline
-- [x] Phase 8 — end-to-end debugging, AI analysis capabilities (sentiment, intel, heatmap, response time)
+- [x] Phase 8 — end-to-end debugging, analytical modules (sentiment, intel, heatmap, response time)
 - [x] Phase 9 — light/dark theme, graph UX polish, filtering performance, portable one-click installer bundle
