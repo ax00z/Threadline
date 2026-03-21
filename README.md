@@ -124,10 +124,10 @@ python scripts/gen_test_data.py -n 5000 -p 4 --format telegram -o data/test.json
 
 - [x] Phase 1 — streaming parser, CLI, tests
 - [x] Phase 2 — FastAPI backend, SvelteKit dashboard, NetworkX graph, DuckDB store
-- [x] Phase 3 — air-gapped NER (10 entity types, regex + optional spaCy)
+- [x] Phase 3 — air-gapped NER (10 entity types, regex + optional spaCy)    
 - [x] Phase 4 — tactical UI with cross-component selection, graph view, timeline brush
 - [x] Phase 5 — SHA-256 hash chain of custody (Python + Rust verifier)
 - [x] Phase 6 — anomaly detection, evidence export, relationship timeline
 - [x] Phase 7 — profiling and optimizing processing pipeline
-- [] Phase 8 — debug the app end-to-end through the web UI, incorporate ai analysis capabilities
+- [X] Phase 8 — debug the app end-to-end through the web UI, incorporate ai analysis capabilities
 - [] Phase 9 — final debugging and code review, bundle app as portable one click installer
