@@ -62,6 +62,7 @@
 						class="cell"
 						style="background: {cellColor(val)}"
 						role="gridcell"
+						tabindex="0"
 						onmouseenter={() => hoveredCell = { day: d, hour: h, count: val }}
 						onmouseleave={() => hoveredCell = null}
 					></div>

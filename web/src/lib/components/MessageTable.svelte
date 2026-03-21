@@ -260,12 +260,6 @@
 		color: var(--text-muted);
 	}
 
-	.count {
-		font-size: 0.75rem;
-		color: var(--text-secondary);
-		white-space: nowrap;
-	}
-
 	.scroll-area {
 		flex: 1;
 		overflow-y: auto;
